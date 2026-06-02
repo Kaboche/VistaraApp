@@ -1,6 +1,5 @@
 package com.example.vistaraapp
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -14,16 +13,37 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 
 @Composable
 fun LoginScreen(
-    navController: NavController
+    navController: NavController,
+    authViewModel: AuthViewModel = viewModel(),
+    onLoginSuccess: () -> Unit
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    // Observe login state from ViewModel
+    val loginState by authViewModel.loginState.collectAsState()
+    val isLoading = loginState is LoginUiState.Loading
+
+    // Handle login result
+    LaunchedEffect(loginState) {
+        when (loginState) {
+            is LoginUiState.Success -> {
+                // Login successful - navigate to home
+                onLoginSuccess()
+                authViewModel.resetLoginState()
+            }
+            is LoginUiState.Error -> {
+                errorMessage = (loginState as LoginUiState.Error).message
+            }
+            else -> {}
+        }
+    }
 
     // Brand Colors
     val brandGreen = Color(0xFF029602)
@@ -31,15 +51,15 @@ fun LoginScreen(
     val errorRed = Color(0xFFD32F2F)
     val lightGray = Color(0xFFF5F5F5)
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(pureWhite)
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = pureWhite
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp),
+                .padding(24.dp)
+                .systemBarsPadding(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
@@ -77,14 +97,14 @@ fun LoginScreen(
                         .padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // Email Field - FIXED TEXT COLOR
+                    // Email Field
                     OutlinedTextField(
                         value = email,
                         onValueChange = { email = it },
                         label = { Text("Email or Username") },
                         placeholder = { Text("Enter your Email or Username") },
                         modifier = Modifier.fillMaxWidth(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                         singleLine = true,
                         shape = RoundedCornerShape(12.dp),
                         colors = OutlinedTextFieldDefaults.colors(
@@ -98,7 +118,7 @@ fun LoginScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Password Field - FIXED TEXT COLOR
+                    // Password Field
                     OutlinedTextField(
                         value = password,
                         onValueChange = { password = it },
@@ -113,8 +133,8 @@ fun LoginScreen(
                             focusedBorderColor = brandGreen,
                             unfocusedBorderColor = Color.LightGray,
                             focusedLabelColor = brandGreen,
-                            focusedTextColor = Color.Black,      // ✅ ADDED
-                            unfocusedTextColor = Color.Black     // ✅ ADDED
+                            focusedTextColor = Color.Black,
+                            unfocusedTextColor = Color.Black
                         )
                     )
 
@@ -147,12 +167,8 @@ fun LoginScreen(
                     Button(
                         onClick = {
                             if (email.isNotEmpty() && password.isNotEmpty()) {
-                                isLoading = true
-                                // Simulate login
-                                isLoading = false
-                                navController.navigate("home") {
-                                    popUpTo("login") { inclusive = true }
-                                }
+                                errorMessage = null
+                                authViewModel.loginUser(email, password)
                             } else {
                                 errorMessage = "Please enter Email/Username and Password"
                             }
@@ -183,11 +199,10 @@ fun LoginScreen(
                     }
                 }
             }
-            // ========== END OF BOX ==========
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Register Link (outside the box)
+            // Register Link
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center,

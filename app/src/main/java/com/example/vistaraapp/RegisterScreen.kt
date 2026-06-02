@@ -1,10 +1,12 @@
 package com.example.vistaraapp
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,6 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.vistaraapp.ui.theme.VistaraTheme
@@ -23,23 +26,46 @@ import com.example.vistaraapp.ui.theme.VistaraTheme
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterScreen(
-    navController: NavController
+    navController: NavController,
+    authViewModel: AuthViewModel = viewModel()
 ) {
     // State variables for each input field
     var fullName by remember { mutableStateOf("") }
-    var idNumber by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
+    var nationalIdNo by remember { mutableStateOf("") }
     var phoneNumber by remember { mutableStateOf("") }
-    var vehicleNumber by remember { mutableStateOf("") }
+    var emergencyContactName by remember { mutableStateOf("") }
+    var emergencyContactPhone by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(false) }
+
     var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    // Observe registration state
+    val registerState by authViewModel.registerState.collectAsState()
+
+    // Handle registration state changes
+    LaunchedEffect(registerState) {
+        when (registerState) {
+            is RegisterUiState.Success -> {
+                // Registration successful - go back to login
+                navController.popBackStack()
+                authViewModel.resetRegisterState()
+            }
+            is RegisterUiState.Error -> {
+                errorMessage = (registerState as RegisterUiState.Error).message
+            }
+            else -> {}
+        }
+    }
 
     // Brand Colors
     val brandGreen = Color(0xFF029602)
     val pureWhite = Color(0xFFFFFFFF)
     val lightGray = Color(0xFFF5F5F5)
     val errorRed = Color(0xFFD32F2F)
+
+    val isLoading = registerState is RegisterUiState.Loading
 
     Scaffold(
         topBar = {
@@ -61,9 +87,7 @@ fun RegisterScreen(
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = pureWhite
-                )
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = pureWhite)
             )
         },
         containerColor = pureWhite
@@ -72,12 +96,12 @@ fun RegisterScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp)
                 .padding(top = 16.dp, bottom = 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top
         ) {
-            // Subtitle
             Text(
                 text = "Join Vistara for park safety",
                 fontSize = 14.sp,
@@ -85,7 +109,6 @@ fun RegisterScreen(
                 modifier = Modifier.padding(bottom = 24.dp)
             )
 
-            // Card container
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -106,7 +129,22 @@ fun RegisterScreen(
                         onValueChange = { fullName = it },
                         label = { Text("Full Name") },
                         placeholder = { Text("Enter your full name") },
+                        leadingIcon = { Icon(Icons.Filled.Person, null, tint = brandGreen) },
                         modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = textFieldColors(brandGreen)
+                    )
+
+                    // Email
+                    OutlinedTextField(
+                        value = email,
+                        onValueChange = { email = it },
+                        label = { Text("Email") },
+                        placeholder = { Text("Enter your email") },
+                        leadingIcon = { Icon(Icons.Filled.Email, null, tint = brandGreen) },
+                        modifier = Modifier.fillMaxWidth(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                         singleLine = true,
                         shape = RoundedCornerShape(12.dp),
                         colors = textFieldColors(brandGreen)
@@ -114,8 +152,8 @@ fun RegisterScreen(
 
                     // ID Number
                     OutlinedTextField(
-                        value = idNumber,
-                        onValueChange = { idNumber = it },
+                        value = nationalIdNo,
+                        onValueChange = { nationalIdNo = it },
                         label = { Text("ID Number") },
                         placeholder = { Text("National ID or Passport") },
                         modifier = Modifier.fillMaxWidth(),
@@ -131,6 +169,7 @@ fun RegisterScreen(
                         onValueChange = { phoneNumber = it },
                         label = { Text("Phone Number") },
                         placeholder = { Text("e.g., +254700000000") },
+                        leadingIcon = { Icon(Icons.Filled.Phone, null, tint = brandGreen) },
                         modifier = Modifier.fillMaxWidth(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                         singleLine = true,
@@ -138,13 +177,27 @@ fun RegisterScreen(
                         colors = textFieldColors(brandGreen)
                     )
 
-                    // Vehicle Number (Optional)
+                    // Emergency Contact Name
                     OutlinedTextField(
-                        value = vehicleNumber,
-                        onValueChange = { vehicleNumber = it },
-                        label = { Text("Vehicle Number (Optional)") },
-                        placeholder = { Text("e.g., KAA 123B") },
+                        value = emergencyContactName,
+                        onValueChange = { emergencyContactName = it },
+                        label = { Text("Emergency Contact Name") },
+                        placeholder = { Text("Name of emergency contact") },
                         modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = textFieldColors(brandGreen)
+                    )
+
+                    // Emergency Contact Phone
+                    OutlinedTextField(
+                        value = emergencyContactPhone,
+                        onValueChange = { emergencyContactPhone = it },
+                        label = { Text("Emergency Contact Phone") },
+                        placeholder = { Text("Emergency phone number") },
+                        leadingIcon = { Icon(Icons.Filled.Phone, null, tint = brandGreen) },
+                        modifier = Modifier.fillMaxWidth(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                         singleLine = true,
                         shape = RoundedCornerShape(12.dp),
                         colors = textFieldColors(brandGreen)
@@ -156,6 +209,7 @@ fun RegisterScreen(
                         onValueChange = { password = it },
                         label = { Text("Password") },
                         placeholder = { Text("Create a password") },
+                        leadingIcon = { Icon(Icons.Filled.Lock, null, tint = brandGreen) },
                         modifier = Modifier.fillMaxWidth(),
                         visualTransformation = PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
@@ -170,6 +224,7 @@ fun RegisterScreen(
                         onValueChange = { confirmPassword = it },
                         label = { Text("Confirm Password") },
                         placeholder = { Text("Re-enter your password") },
+                        leadingIcon = { Icon(Icons.Filled.Lock, null, tint = brandGreen) },
                         modifier = Modifier.fillMaxWidth(),
                         visualTransformation = PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
@@ -178,7 +233,6 @@ fun RegisterScreen(
                         colors = textFieldColors(brandGreen)
                     )
 
-                    // Error message
                     if (errorMessage != null) {
                         Text(
                             text = errorMessage!!,
@@ -193,21 +247,29 @@ fun RegisterScreen(
                     // Register Button
                     Button(
                         onClick = {
-                            // Validation
                             when {
                                 fullName.isBlank() -> errorMessage = "Please enter your full name"
-                                idNumber.isBlank() -> errorMessage = "Please enter your ID number"
+                                email.isBlank() -> errorMessage = "Please enter your email"
+                                !android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches() ->
+                                    errorMessage = "Please enter a valid email address"
+                                nationalIdNo.isBlank() -> errorMessage = "Please enter your ID number"
                                 phoneNumber.isBlank() -> errorMessage = "Please enter your phone number"
+                                emergencyContactName.isBlank() -> errorMessage = "Please enter emergency contact name"
+                                emergencyContactPhone.isBlank() -> errorMessage = "Please enter emergency contact phone"
                                 password.isBlank() -> errorMessage = "Please create a password"
                                 password != confirmPassword -> errorMessage = "Passwords do not match"
                                 password.length < 6 -> errorMessage = "Password must be at least 6 characters"
                                 else -> {
-                                    isLoading = true
-                                    // TODO: Call repository.register() here
-                                    // For now, simulate registration
-                                    isLoading = false
-                                    // Go back to Login screen
-                                    navController.popBackStack()
+                                    errorMessage = null
+                                    authViewModel.registerUser(
+                                        email = email,
+                                        password = password,
+                                        fullName = fullName,
+                                        phoneNumber = phoneNumber,
+                                        nationalId = nationalIdNo,
+                                        emergencyContactName = emergencyContactName,
+                                        emergencyContactPhone = emergencyContactPhone
+                                    )
                                 }
                             }
                         },
@@ -236,7 +298,6 @@ fun RegisterScreen(
                         }
                     }
 
-                    // Login link
                     TextButton(
                         onClick = { navController.popBackStack() },
                         modifier = Modifier.fillMaxWidth()
@@ -269,7 +330,11 @@ private fun textFieldColors(brandGreen: Color) = OutlinedTextFieldDefaults.color
 @Composable
 fun RegisterScreenPreview() {
     val dummyNavController = rememberNavController()
+    val dummyViewModel = AuthViewModel()
     VistaraTheme {
-        RegisterScreen(navController = dummyNavController)
+        RegisterScreen(
+            navController = dummyNavController,
+            authViewModel = dummyViewModel
+        )
     }
 }

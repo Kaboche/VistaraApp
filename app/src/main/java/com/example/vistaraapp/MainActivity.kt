@@ -4,14 +4,16 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.runtime.Composable
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Scaffold
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.vistaraapp.ui.theme.VistaraTheme
 
@@ -22,12 +24,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             VistaraTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    VistaraApp()
-                }
+                VistaraApp()
             }
         }
     }
@@ -36,28 +33,93 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun VistaraApp() {
     val navController = rememberNavController()
+    var isLoggedIn by remember { mutableStateOf(false) }
 
-    NavHost(
-        navController = navController,
-        startDestination = "login"
-    ) {
-        composable("login") {
-            LoginScreen(navController = navController)
+    Scaffold(
+        bottomBar = {
+            if (isLoggedIn) {
+                val navBackStackEntry by navController.currentBackStackEntryAsState()
+                val currentRoute = navBackStackEntry?.destination?.route ?: "home"
+                val showBottomBar = currentRoute in listOf("home", "wildlife", "bookings", "profile")
+
+                if (showBottomBar) {
+                    ModernBottomBar(
+                        currentRoute = currentRoute,
+                        onItemSelected = { route ->
+                            navController.navigate(route) {
+                                popUpTo("home") { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        }
+                    )
+                }
+            }
         }
-        composable("register") {
-            RegisterScreen(navController = navController)
-        }
-        composable("home") {
-            HomeScreen(navController = navController)
-        }
-        composable("checkin") {
-            CheckInScreen(navController = navController)
-        }
-        composable("sos") {
-            SOSScreen(navController = navController)
-        }
-        composable("profile") {
-            ProfileScreen(navController = navController)
+    ) { innerPadding ->
+        NavHost(
+            navController = navController,
+            startDestination = "login",
+            modifier = Modifier.padding(innerPadding)
+        ) {
+            // ========== AUTH SCREENS ==========
+            composable("login") {
+                LoginScreen(
+                    navController = navController,
+                    onLoginSuccess = {
+                        isLoggedIn = true
+                        navController.navigate("home") {
+                            popUpTo("login") { inclusive = true }
+                        }
+                    }
+                )
+            }
+            composable("register") {
+                RegisterScreen(navController = navController)
+            }
+
+            // ========== MAIN BOTTOM NAVIGATION SCREENS ==========
+            composable("home") {
+                val weatherViewModel: WeatherViewModel = viewModel()
+                HomeScreen(navController = navController, weatherViewModel = weatherViewModel)
+            }
+            composable("wildlife") {
+                WildlifeScreen(navController = navController)
+            }
+            composable("bookings") {
+                BookingsScreen(navController = navController)
+            }
+            composable("profile") {
+                ProfileScreen(navController = navController)
+            }
+
+            // ========== BOOKING FLOW SCREENS ==========
+            composable("booking/{parkId}") { backStackEntry ->
+                val parkId = backStackEntry.arguments?.getString("parkId")?.toIntOrNull() ?: 0
+                BookingScreen(navController = navController, parkId = parkId)
+            }
+
+            // ✅ CHECKIN SCREEN - ADD THIS ROUTE
+            composable("checkin") {
+                CheckInScreen(navController = navController)
+            }
+
+            // ✅ MAP TRACKING SCREEN - ADD THIS ROUTE
+            composable("map_tracking") {
+                MapTrackingScreen(navController = navController)
+            }
+
+            // ========== EMERGENCY SCREENS ==========
+            composable("sos") {
+                SOSScreen(navController = navController)
+            }
+
+            // ========== ANIMAL DETAIL SCREEN ==========
+            composable("animal/{animalId}") { backStackEntry ->
+                val animalId = backStackEntry.arguments?.getString("animalId")?.toIntOrNull() ?: 1
+                val animal = uniqueAnimals.find { it.id == animalId } ?: uniqueAnimals[0]
+                AnimalDetailScreen(navController = navController, animal = animal)
+            }
         }
     }
 }

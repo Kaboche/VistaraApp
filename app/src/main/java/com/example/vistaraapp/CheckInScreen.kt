@@ -1,6 +1,7 @@
 package com.example.vistaraapp
-
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -15,15 +16,21 @@ import androidx.navigation.NavController
 
 @Composable
 fun CheckInScreen(navController: NavController) {
-    // Brand Colors
     val brandGreen = Color(0xFF029602)
     val pureWhite = Color(0xFFFFFFFF)
+    val lightGray= Color(0xFFF5F5F5)
 
-    // State variables
     var groupSize by remember { mutableStateOf("1") }
     var vehicleNumber by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(lightGray)
+
+    )
 
     Column(
         modifier = Modifier
@@ -32,25 +39,11 @@ fun CheckInScreen(navController: NavController) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        // Header
-        Text(
-            text = "Check In to Park",
-            fontSize = 28.sp,
-            fontWeight = FontWeight.Bold,
-            color = brandGreen
-        )
+        Text("Check In to Park", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = brandGreen)
+        Spacer(Modifier.height(8.dp))
+        Text("Please provide your details", fontSize = 14.sp, color = Color.Gray)
+        Spacer(Modifier.height(48.dp))
 
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Text(
-            text = "Please provide your details",
-            fontSize = 14.sp,
-            color = Color.Gray
-        )
-
-        Spacer(modifier = Modifier.height(48.dp))
-
-        // Group Size Field
         OutlinedTextField(
             value = groupSize,
             onValueChange = { groupSize = it },
@@ -59,17 +52,17 @@ fun CheckInScreen(navController: NavController) {
             modifier = Modifier.fillMaxWidth(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             singleLine = true,
-            shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = brandGreen,
                 focusedLabelColor = brandGreen,
-                unfocusedBorderColor = Color.LightGray
+                unfocusedBorderColor = Color.LightGray,
+                focusedTextColor = Color.Black,
+                unfocusedTextColor = Color.Black
             )
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(Modifier.height(16.dp))
 
-        // Vehicle Number Field (Optional)
         OutlinedTextField(
             value = vehicleNumber,
             onValueChange = { vehicleNumber = it },
@@ -77,27 +70,32 @@ fun CheckInScreen(navController: NavController) {
             placeholder = { Text("e.g., KAA 123B") },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
-            shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = brandGreen,
                 focusedLabelColor = brandGreen,
-                unfocusedBorderColor = Color.LightGray
+                unfocusedBorderColor = Color.LightGray,
+                focusedTextColor = Color.Black,
+                unfocusedTextColor = Color.Black
             )
         )
 
-        // Error Message
         if (errorMessage != null) {
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = errorMessage!!,
-                color = Color(0xFFD32F2F),
-                fontSize = 12.sp
+            Spacer(Modifier.height(8.dp))
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        color = Color(0xFFFFEBEE),
+                        shape = RoundedCornerShape(8.dp)
+                    )
+                    .padding(8.dp)
             )
+            Text(errorMessage!!, color = Color(0xFFD32F2F), fontSize = 12.sp)
         }
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(Modifier.height(32.dp))
 
-        // Confirm Button
         Button(
             onClick = {
                 val size = groupSize.toIntOrNull()
@@ -105,49 +103,28 @@ fun CheckInScreen(navController: NavController) {
                     errorMessage = "Please enter a valid group size"
                 } else {
                     isLoading = true
-                    // Simulate check-in process
-                    // In real app, call repository.checkIn() here
                     isLoading = false
-                    // Navigate back to home
-                    navController.popBackStack()
+                    navController.navigate("map_tracking")
                 }
             },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp),
+            modifier = Modifier.fillMaxWidth().height(56.dp),
             enabled = !isLoading,
-            shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = brandGreen,
                 disabledContainerColor = brandGreen.copy(alpha = 0.5f)
             )
         ) {
             if (isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(24.dp),
-                    color = pureWhite
-                )
+                CircularProgressIndicator(Modifier.size(24.dp), color = pureWhite)
             } else {
-                Text(
-                    text = "CONFIRM CHECK-IN",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = pureWhite
-                )
+                Text("CONFIRM CHECK-IN", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = pureWhite)
             }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(Modifier.height(12.dp))
 
-        // Cancel Button
-        TextButton(
-            onClick = { navController.popBackStack() }
-        ) {
-            Text(
-                text = "Cancel",
-                color = brandGreen,
-                fontSize = 14.sp
-            )
+        TextButton(onClick = { navController.popBackStack() }) {
+            Text("Cancel", color = brandGreen, fontSize = 14.sp)
         }
     }
 }
