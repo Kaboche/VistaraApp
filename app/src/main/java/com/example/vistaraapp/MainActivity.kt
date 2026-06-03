@@ -40,7 +40,7 @@ fun VistaraApp() {
             if (isLoggedIn) {
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentRoute = navBackStackEntry?.destination?.route ?: "home"
-                val showBottomBar = currentRoute in listOf("home", "wildlife", "bookings", "profile")
+                val showBottomBar = currentRoute in listOf("home", "wildlife", "bookings", "profile",)
 
                 if (showBottomBar) {
                     ModernBottomBar(
@@ -59,7 +59,7 @@ fun VistaraApp() {
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = "login",
+            startDestination = "home",
             modifier = Modifier.padding(innerPadding)
         ) {
             // ========== AUTH SCREENS ==========
@@ -120,6 +120,10 @@ fun VistaraApp() {
                 val animal = uniqueAnimals.find { it.id == animalId } ?: uniqueAnimals[0]
                 AnimalDetailScreen(navController = navController, animal = animal)
             }
+            composable("notifications") {
+                NotificationScreen(navController = navController)
+            }
+
         }
     }
 }

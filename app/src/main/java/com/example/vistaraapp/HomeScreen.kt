@@ -8,12 +8,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -23,11 +24,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.vistaraapp.ui.theme.VistaraTheme
 import java.util.Calendar
-import com.example.vistaraapp.EmergencyInfoCard
 
 // ========== DYNAMIC CONTENT HELPERS ==========
 fun getDynamicGreeting(): String {
@@ -41,17 +40,13 @@ fun getDynamicGreeting(): String {
 fun getDynamicBoldPhrase(): String {
     return when (Calendar.getInstance().get(Calendar.HOUR_OF_DAY)) {
         in 0..11 -> "Nairobi is Waking Up!"
-        in 12..16 -> "The Savannah Awaits You!"
+        in 12..16 -> "The Savannah Awa awaits You!"
         else -> "Unwind in the Wild Tonight!"
     }
 }
 
 // ========== MAIN HOME SCREEN ENTRIES ==========
 
-/**
- * The production entry point for your App. Call THIS version from your NavHost.
- * It safely extracts state from the ViewModel and handles live interactions.
- */
 @Composable
 fun HomeScreen(
     navController: NavController,
@@ -66,10 +61,6 @@ fun HomeScreen(
     )
 }
 
-/**
- * The pure UI presentation layer. This version is completely decoupled
- * from the ViewModel constructor, making it safe to render in Previews!
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreenContent(
@@ -81,34 +72,47 @@ fun HomeScreenContent(
     val pureWhite = Color(0xFFFFFFFF)
     val lightGray = Color(0xFFF5F7FA)
 
-    // Track current navigation state to highlight active item dynamically
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = navBackStackEntry?.destination?.route
-
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "Vistara",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = brandGreen
-                    )
-                },
-                actions = {
-                    IconButton(onClick = { navController.navigate("wildlife") }) {
-                        Icon(
-                            imageVector = Icons.Filled.Search,
-                            contentDescription = "explore",
-                            tint = brandGreen
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(pureWhite)
+            ) {
+                TopAppBar(
+                    title = {
+                        Text(
+                            text = "Vistara",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = brandGreen
                         )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = pureWhite)
-            )
+                    },
+                    actions = {
+                        IconButton(onClick = { navController.navigate("notifications") }) {
+                            Icon(
+                                imageVector = Icons.Filled.Notifications,
+                                contentDescription = "View Alert Notifications",
+                                tint = brandGreen
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = pureWhite),
+                    modifier = Modifier
+                        .clip(
+                            RoundedCornerShape(
+                                topStart = 0.dp,
+                                topEnd = 0.dp,
+                                bottomStart = 28.dp,
+                                bottomEnd = 28.dp
+                            )
+                        )
+                        .drawBehind {
+                            drawRect(color = pureWhite)
+                        }
+                )
+            }
         },
-
         containerColor = lightGray
     ) { paddingValues ->
         LazyColumn(
@@ -123,11 +127,14 @@ fun HomeScreenContent(
             item { RealTimeWeatherCard(brandGreen, weatherState, onRetryWeather) }
             item { WildlifeDiscoveryCard(navController, brandGreen) }
             item { PicnicSiteCard() }
-            item { SafetyCheckCard(navController) }
-            item { RecentSightingsCard(navController) }
+
+            // 🚨 INTEGRATED EMERGENCY INCIDENT CARD WITH SELECTION FORM
             item {
                 EmergencyInfoCard(
-                    onSOSClick = { navController.navigate("sos") },
+                    onSendEmergencyReport = { emergencyType, details ->
+                        // Pass parameters down to your navigation stack or backend api routes
+                        navController.navigate("sos?type=$emergencyType&details=$details")
+                    },
                     brandGreen = brandGreen
                 )
             }
@@ -378,7 +385,7 @@ fun WildlifeDiscoveryCard(navController: NavController, brandGreen: Color) {
                     color = brandGreen.copy(alpha = 0.1f)
                 ) {
                     Text(
-                        text = "💡 SAFARI DISCOVERY",
+                        text = "SAFARI DISCOVERY",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         color = brandGreen,
@@ -427,7 +434,7 @@ fun WildlifeDiscoveryCard(navController: NavController, brandGreen: Color) {
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = brandGreen)
                 ) {
-                    Text("Book Safari 🚀", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    Text("Book Safari ", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
                 }
             }
         }
@@ -460,126 +467,9 @@ fun PicnicSiteCard() {
             Text("Perfect spot for a picnic with family. Enjoy the stunning views of the savannah and wildlife.", fontSize = 13.sp, color = Color.Gray)
             Spacer(Modifier.height(12.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                InfoChip("📍 2.5 km from Main Gate")
-                InfoChip("⭐ 4.8 Star Rated")
+                InfoChip("2.5 km from Main Gate")
             }
         }
-    }
-}
-
-// ========== 6. SAFETY CHECK CARD ==========
-@Composable
-fun SafetyCheckCard(navController: NavController) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-            .clickable { navController.navigate("sos") },
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(2.dp)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("🛡️", fontSize = 20.sp)
-                    Spacer(Modifier.width(8.dp))
-                    Text("Safety Check", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF029602))
-                }
-                Surface(
-                    shape = RoundedCornerShape(20.dp),
-                    color = Color(0xFF029602).copy(alpha = 0.1f)
-                ) {
-                    Text("Active", fontSize = 10.sp, color = Color(0xFF029602), modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
-                }
-            }
-            Spacer(Modifier.height(12.dp))
-            Text("Emergency Services Dispatch", fontSize = 13.sp, color = Color.Gray)
-            Spacer(Modifier.height(8.dp))
-
-            Column(modifier = Modifier.fillMaxWidth()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(8.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(Color(0xFFE5E7EB))
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(0.84f)
-                            .fillMaxHeight()
-                            .background(Color(0xFF029602))
-                            .clip(RoundedCornerShape(4.dp))
-                    )
-                }
-                Spacer(Modifier.height(4.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text("84%", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF029602))
-                    Text("Estimated response: 10-15 minutes", fontSize = 11.sp, color = Color.Gray)
-                }
-            }
-        }
-    }
-}
-
-// ========== 7. RECENT SIGHTINGS CARD ==========
-@Composable
-fun RecentSightingsCard(navController: NavController) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(2.dp)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text("Recent Sightings", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF029602), modifier = Modifier.padding(bottom = 12.dp))
-
-            SightingRow("🦁", "Lion Pride", "Kingfisher Area", "5 mins ago", Color(0xFFEF4444))
-            HorizontalDivider(color = Color.LightGray.copy(alpha = 0.3f), modifier = Modifier.padding(vertical = 8.dp))
-            SightingRow("🦏", "Black Rhino", "Hippo Pool", "25 mins ago", Color(0xFFF59E0B))
-            HorizontalDivider(color = Color.LightGray.copy(alpha = 0.3f), modifier = Modifier.padding(vertical = 8.dp))
-            SightingRow("🐘", "Elephant Herd", "Ivory Burning Site", "1 hour ago", Color(0xFF3B82F6))
-
-            Spacer(Modifier.height(8.dp))
-            TextButton(onClick = { navController.navigate("wildlife") }, modifier = Modifier.fillMaxWidth()) {
-                Text("View All Sightings", color = Color(0xFF029602))
-            }
-        }
-    }
-}
-
-@Composable
-fun SightingRow(animal: String, name: String, location: String, time: String, color: Color) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(color.copy(alpha = 0.1f)),
-                contentAlignment = Alignment.Center
-            ) { Text(animal, fontSize = 20.sp) }
-            Spacer(Modifier.width(12.dp))
-            Column {
-                Text(name, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color.Black)
-                Text(location, fontSize = 11.sp, color = Color.Gray)
-            }
-        }
-        Text(time, fontSize = 11.sp, color = Color.Gray)
     }
 }
 
@@ -602,8 +492,6 @@ fun HomeScreenPreview() {
     VistaraTheme {
         val dummyNavController = rememberNavController()
 
-        // We feed mock state directly into the UI container wrapper.
-        // No ViewModel instances are constructed, completely bypassing Android lifecycle issues!
         HomeScreenContent(
             navController = dummyNavController,
             weatherState = WeatherState.Loading,
