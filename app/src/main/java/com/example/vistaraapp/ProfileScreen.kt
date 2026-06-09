@@ -30,6 +30,7 @@ fun ProfileScreen(
     val userPhone = "+254732541948"
     val userVehicle = "KAA 123B"
     val memberSince = "2025"
+    val userEmail="oduorimoses387@gmail.com"
 
     val brandGreen = Color(0xFF029602)
     val pureWhite = Color(0xFFFFFFFF)
@@ -124,7 +125,7 @@ fun ProfileScreen(
                         Text("Full Name", color = Color.Gray, fontWeight = FontWeight.Medium)
                         Text(userName, fontWeight = FontWeight.SemiBold, color = Color.Black)
                     }
-                    Divider(modifier = Modifier.padding(vertical = 12.dp), color = Color.LightGray)
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = Color.LightGray)
 
                     // ID Number
                     Row(
@@ -134,7 +135,7 @@ fun ProfileScreen(
                         Text("ID Number", color = Color.Gray, fontWeight = FontWeight.Medium)
                         Text(userIdNumber, fontWeight = FontWeight.SemiBold, color = Color.Black)
                     }
-                    Divider(modifier = Modifier.padding(vertical = 12.dp), color = Color.LightGray)
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = Color.LightGray)
 
                     // Phone Number
                     Row(
@@ -144,7 +145,7 @@ fun ProfileScreen(
                         Text("Phone Number", color = Color.Gray, fontWeight = FontWeight.Medium)
                         Text(userPhone, fontWeight = FontWeight.SemiBold, color = Color.Black)
                     }
-                    Divider(modifier = Modifier.padding(vertical = 12.dp), color = Color.LightGray)
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = Color.LightGray)
 
                     // Vehicle Number
                     Row(
@@ -154,12 +155,40 @@ fun ProfileScreen(
                         Text("Vehicle Number", color = Color.Gray, fontWeight = FontWeight.Medium)
                         Text(userVehicle, fontWeight = FontWeight.SemiBold, color = Color.Black)
                     }
+                    //Email
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = Color.LightGray)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+
+                    ) {
+                        Text("Email", color = Color.Gray, fontWeight = FontWeight.Medium)
+                        Text(userEmail, fontWeight = FontWeight.SemiBold, color = Color.Black)
+                    }
+
                 }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // --- RESET PASSWORD TEXT BUTTON ---
+            TextButton(
+                onClick = {
+                    navController.navigate("reset_password")
+                },
+                modifier = Modifier.align(Alignment.End) // Keeps it aligned to the right side
+            ) {
+                Text(
+                    text = "Reset Password",
+                    color = brandGreen,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
             }
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // Logout Button - FIXED SYNTAX
+            // Logout Button - Remains intact at the very bottom
             Button(
                 onClick = {
                     navController.navigate("login") {

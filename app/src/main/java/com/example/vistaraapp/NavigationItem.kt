@@ -27,7 +27,7 @@ sealed class BottomNavItem(
     object Bookings : BottomNavItem(
         route = "bookings",
         title = "Bookings",
-        icon = Icons.Filled.Info,  // Changed from EventNote to Info (works)
+        icon = Icons.Filled.Info,
         selectedIcon = Icons.Filled.Info
     )
 

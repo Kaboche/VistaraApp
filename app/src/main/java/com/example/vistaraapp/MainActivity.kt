@@ -10,7 +10,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -40,7 +39,7 @@ fun VistaraApp() {
             if (isLoggedIn) {
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentRoute = navBackStackEntry?.destination?.route ?: "home"
-                val showBottomBar = currentRoute in listOf("home", "wildlife", "bookings", "profile",)
+                val showBottomBar = currentRoute in listOf("home", "wildlife", "bookings", "profile")
 
                 if (showBottomBar) {
                     ModernBottomBar(
@@ -59,7 +58,7 @@ fun VistaraApp() {
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = "home",
+            startDestination = "login",
             modifier = Modifier.padding(innerPadding)
         ) {
             // ========== AUTH SCREENS ==========
@@ -74,8 +73,18 @@ fun VistaraApp() {
                     }
                 )
             }
+
             composable("register") {
                 RegisterScreen(navController = navController)
+            }
+
+            // ✅ FIXED: Forgot Password Route
+            composable("forgot_password") {
+                val authViewModel: AuthViewModel = viewModel()
+                ForgotPasswordScreen(
+                    authViewModel = authViewModel,
+                    onBackToLogin = { navController.popBackStack() }
+                )
             }
 
             // ========== MAIN BOTTOM NAVIGATION SCREENS ==========
@@ -83,12 +92,15 @@ fun VistaraApp() {
                 val weatherViewModel: WeatherViewModel = viewModel()
                 HomeScreen(navController = navController, weatherViewModel = weatherViewModel)
             }
+
             composable("wildlife") {
                 WildlifeScreen(navController = navController)
             }
+
             composable("bookings") {
                 BookingsScreen(navController = navController)
             }
+
             composable("profile") {
                 ProfileScreen(navController = navController)
             }
@@ -99,19 +111,14 @@ fun VistaraApp() {
                 BookingScreen(navController = navController, parkId = parkId)
             }
 
-            // ✅ CHECKIN SCREEN - ADD THIS ROUTE
+            // ✅ CHECKIN SCREEN
             composable("checkin") {
                 CheckInScreen(navController = navController)
             }
 
-            // ✅ MAP TRACKING SCREEN - ADD THIS ROUTE
+            // ✅ MAP TRACKING SCREEN
             composable("map_tracking") {
                 MapTrackingScreen(navController = navController)
-            }
-
-            // ========== EMERGENCY SCREENS ==========
-            composable("sos") {
-                SOSScreen(navController = navController)
             }
 
             // ========== ANIMAL DETAIL SCREEN ==========
@@ -120,10 +127,10 @@ fun VistaraApp() {
                 val animal = uniqueAnimals.find { it.id == animalId } ?: uniqueAnimals[0]
                 AnimalDetailScreen(navController = navController, animal = animal)
             }
+
             composable("notifications") {
                 NotificationScreen(navController = navController)
             }
-
         }
     }
 }

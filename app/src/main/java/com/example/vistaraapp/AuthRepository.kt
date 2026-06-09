@@ -78,7 +78,37 @@ class AuthRepository {
             }
         }
     }
+
+    // ─── ADDED: FORGOT PASSWORD METHOD ──────────────────────────────────────
+    suspend fun forgotPassword(email: String): ForgotPasswordResult {
+        return withContext(Dispatchers.IO) {
+            try {
+                val request = ForgotPasswordRequest(email = email)
+
+                // Calls your API instance endpoint
+                val response = RetrofitClient.instance.forgotPassword(request)
+
+                if (response.success) {
+                    ForgotPasswordResult.Success(response.message ?: "A recovery link has been sent to your email.")
+                } else {
+                    ForgotPasswordResult.Error(response.message ?: "Failed to process request.")
+                }
+            } catch (e: HttpException) {
+                when (e.code()) {
+                    404 -> ForgotPasswordResult.Error("Account with this email does not exist.")
+                    else -> ForgotPasswordResult.Error("Network error: ${e.code()} - ${e.message()}")
+                }
+            } catch (e: IOException) {
+                ForgotPasswordResult.Error("Network error: Please check your internet connection")
+            } catch (e: Exception) {
+                ForgotPasswordResult.Error("Error: ${e.message}")
+            }
+        }
+    }
+    // ────────────────────────────────────────────────────────────────────────
 }
+
+// ─── RESULT SEALED CLASSES ──────────────────────────────────────────────────
 
 // Registration Result
 sealed class RegisterResult {

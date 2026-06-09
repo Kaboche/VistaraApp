@@ -4,17 +4,24 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 
 @Composable
 fun LoginScreen(
@@ -26,22 +33,29 @@ fun LoginScreen(
     var password by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
-    // Observe login state from ViewModel
-    val loginState by authViewModel.loginState.collectAsState()
-    val isLoading = loginState is LoginUiState.Loading
+    // State to manage password visibility toggle
+    var passwordVisible by remember { mutableStateOf(false) }
 
-    // Handle login result
-    LaunchedEffect(loginState) {
-        when (loginState) {
-            is LoginUiState.Success -> {
-                // Login successful - navigate to home
-                onLoginSuccess()
-                authViewModel.resetLoginState()
+    // Check if running inside the Android Studio layout preview engine
+    val isPreview = LocalInspectionMode.current
+    var isLoading = false
+
+    // ONLY observe live production state if we are running on an actual device or emulator
+    if (!isPreview) {
+        val loginState by authViewModel.loginState.collectAsState()
+        isLoading = loginState is LoginUiState.Loading
+
+        LaunchedEffect(loginState) {
+            when (loginState) {
+                is LoginUiState.Success -> {
+                    onLoginSuccess()
+                    authViewModel.resetLoginState()
+                }
+                is LoginUiState.Error -> {
+                    errorMessage = (loginState as LoginUiState.Error).message
+                }
+                else -> {}
             }
-            is LoginUiState.Error -> {
-                errorMessage = (loginState as LoginUiState.Error).message
-            }
-            else -> {}
         }
     }
 
@@ -101,8 +115,8 @@ fun LoginScreen(
                     OutlinedTextField(
                         value = email,
                         onValueChange = { email = it },
-                        label = { Text("Email or Username") },
-                        placeholder = { Text("Enter your Email or Username") },
+                        label = { Text("Email") },
+                        placeholder = { Text("Enter your Email") },
                         modifier = Modifier.fillMaxWidth(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                         singleLine = true,
@@ -125,16 +139,26 @@ fun LoginScreen(
                         label = { Text("Password") },
                         placeholder = { Text("Enter your password") },
                         modifier = Modifier.fillMaxWidth(),
-                        visualTransformation = PasswordVisualTransformation(),
+                        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                         singleLine = true,
                         shape = RoundedCornerShape(12.dp),
+                        trailingIcon = {
+                            val icon = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
+                            val description = if (passwordVisible) "Hide password" else "Show password"
+
+                            IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                                Icon(imageVector = icon, contentDescription = description)
+                            }
+                        },
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = brandGreen,
                             unfocusedBorderColor = Color.LightGray,
                             focusedLabelColor = brandGreen,
                             focusedTextColor = Color.Black,
-                            unfocusedTextColor = Color.Black
+                            unfocusedTextColor = Color.Black,
+                            focusedTrailingIconColor = brandGreen,
+                            unfocusedTrailingIconColor = Color.Gray // Fixed the trailingIconColor parameter error here
                         )
                     )
 
@@ -149,9 +173,11 @@ fun LoginScreen(
                         )
                     }
 
-                    // Forgot Password?
+                    //  FORGOT PASSWORD NAVIGATION TRIGGER
                     TextButton(
-                        onClick = { /* TODO: Forgot password */ },
+                        onClick = {
+                            navController.navigate("forgot_password")
+                        },
                         modifier = Modifier.align(Alignment.End)
                     ) {
                         Text(
@@ -168,7 +194,7 @@ fun LoginScreen(
                         onClick = {
                             if (email.isNotEmpty() && password.isNotEmpty()) {
                                 errorMessage = null
-                                authViewModel.loginUser(email, password)
+                                if (!isPreview) authViewModel.loginUser(email, password)
                             } else {
                                 errorMessage = "Please enter Email/Username and Password"
                             }
@@ -227,4 +253,14 @@ fun LoginScreen(
             }
         }
     }
+}
+
+@Preview(showBackground = true, showSystemUi = true)
+@Composable
+fun LoginScreenPreview() {
+    val mockNavController = rememberNavController()
+    LoginScreen(
+        navController = mockNavController,
+        onLoginSuccess = { }
+    )
 }

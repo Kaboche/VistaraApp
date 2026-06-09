@@ -1,4 +1,4 @@
-package com.example.vistaraapp
+package com.example.vistaraapp // ⚠️ CHANGE THIS to match your exact project package if different!
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -8,7 +8,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import android.util.Log
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,11 +23,14 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.vistaraapp.ui.theme.VistaraTheme
+// If your WeatherViewModel or EmergencyInfoCard are in a different folder/package,
+// Android Studio will prompt you to press Alt+Enter (Option+Return on Mac) right here to import them.
 import java.util.Calendar
 
 // ========== DYNAMIC CONTENT HELPERS ==========
@@ -40,7 +45,7 @@ fun getDynamicGreeting(): String {
 fun getDynamicBoldPhrase(): String {
     return when (Calendar.getInstance().get(Calendar.HOUR_OF_DAY)) {
         in 0..11 -> "Nairobi is Waking Up!"
-        in 12..16 -> "The Savannah Awa awaits You!"
+        in 12..16 -> "The Savannah Awaits You!"
         else -> "Unwind in the Wild Tonight!"
     }
 }
@@ -71,6 +76,9 @@ fun HomeScreenContent(
     val brandGreen = Color(0xFF029602)
     val pureWhite = Color(0xFFFFFFFF)
     val lightGray = Color(0xFFF5F7FA)
+    val emergencyRed = Color(0xFFD32F2F)
+
+    var showEmergencyOverlay by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -113,30 +121,65 @@ fun HomeScreenContent(
                 )
             }
         },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { showEmergencyOverlay = true },
+                containerColor = emergencyRed,
+                contentColor = pureWhite,
+                elevation = FloatingActionButtonDefaults.elevation(6.dp),
+                shape = RoundedCornerShape(20.dp),
+            ){
+                Icon(
+                    imageVector = Icons.Filled.Warning,
+                    contentDescription = "Emergency",
+                    tint = Color.White
+                )
+            }
+        },
         containerColor = lightGray
     ) { paddingValues ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues),
-            contentPadding = PaddingValues(bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+        Box(
+            modifier = Modifier.fillMaxSize()
         ) {
-            item { HeroDashboardCard(weatherState) }
-            item { StatsRow() }
-            item { RealTimeWeatherCard(brandGreen, weatherState, onRetryWeather) }
-            item { WildlifeDiscoveryCard(navController, brandGreen) }
-            item { PicnicSiteCard() }
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(
+                    top = paddingValues.calculateTopPadding(),
+                    start = paddingValues.calculateStartPadding(LayoutDirection.Ltr), // Fixed: left -> start
+                    end = paddingValues.calculateEndPadding(LayoutDirection.Ltr),     // Fixed: right -> end
+                    bottom = paddingValues.calculateBottomPadding() + 16.dp           // Fixed: Clears FAB flawlessly
+                ),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                item { HeroDashboardCard(weatherState) }
+                item { StatsRow() }
+                item { RealTimeWeatherCard(brandGreen, weatherState, onRetryWeather) }
+                item { WildlifeDiscoveryCard(navController, brandGreen) }
+                item { PicnicSiteCard() }
+            }
 
-            // 🚨 INTEGRATED EMERGENCY INCIDENT CARD WITH SELECTION FORM
-            item {
-                EmergencyInfoCard(
-                    onSendEmergencyReport = { emergencyType, details ->
-                        // Pass parameters down to your navigation stack or backend api routes
-                        navController.navigate("sos?type=$emergencyType&details=$details")
-                    },
-                    brandGreen = brandGreen
-                )
+            if (showEmergencyOverlay) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.4f))
+                        .clickable { showEmergencyOverlay = false },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .padding(24.dp)
+                            .clickable(enabled = false) { }
+                    ) {
+                        EmergencyInfoCard(
+                            onSendEmergencyReport = { emergencyType, details ->
+                                // Report is handled inside EmergencyInfoCard; we only log here.
+                                Log.d("Emergency", "Type: $emergencyType, Details: $details")
+                            },
+                            brandGreen = brandGreen
+                        )
+                    }
+                }
             }
         }
     }
@@ -226,23 +269,20 @@ fun HeroDashboardCard(weatherState: WeatherState) {
                 }
 
                 Column(horizontalAlignment = Alignment.End) {
-                    when (weatherState) {
-                        is WeatherState.Success -> {
-                            val weather = weatherState.weather
-                            val currentTemp = weather.current_weather.temperature.toInt()
-                            val weatherCode = weather.current_weather.weathercode
+                    if (weatherState is WeatherState.Success) {
+                        val weather = weatherState.weather
+                        val currentTemp = weather.current_weather.temperature.toInt()
+                        val weatherCode = weather.current_weather.weathercode
 
-                            Text(text = getWeatherEmoji(weatherCode), fontSize = 28.sp)
-                            Text(
-                                text = "$currentTemp°C • ${getWeatherDescription(weatherCode)}",
-                                fontSize = 12.sp,
-                                color = Color.White.copy(alpha = 0.8f)
-                            )
-                        }
-                        else -> {
-                            Text("🌤️", fontSize = 28.sp)
-                            Text("Loading...", fontSize = 12.sp, color = Color.White.copy(alpha = 0.6f))
-                        }
+                        Text(text = getWeatherEmoji(weatherCode), fontSize = 28.sp)
+                        Text(
+                            text = "$currentTemp°C • ${getWeatherDescription(weatherCode)}",
+                            fontSize = 12.sp,
+                            color = Color.White.copy(alpha = 0.8f)
+                        )
+                    } else {
+                        Text("🌤️", fontSize = 28.sp)
+                        Text("Loading...", fontSize = 12.sp, color = Color.White.copy(alpha = 0.6f))
                     }
                 }
             }
@@ -269,19 +309,19 @@ fun StatsRow() {
 @Composable
 fun StatCard(value: String, label: String, color: Color, modifier: Modifier = Modifier) {
     Card(
-        modifier = modifier,
+        modifier = modifier.height(64.dp),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(2.dp)
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
             Text(value, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = color)
-            Text(label, fontSize = 10.sp, color = Color.Gray)
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(label, fontSize = 10.sp, color = Color.Gray, fontWeight = FontWeight.Medium)
         }
     }
 }

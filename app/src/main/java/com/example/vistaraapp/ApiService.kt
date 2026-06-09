@@ -27,6 +27,12 @@ data class LoginRequest(
     val password: String
 )
 
+// ─── ADDED: FORGOT PASSWORD REQUEST MODEL ──────────────────────────────
+data class ForgotPasswordRequest(
+    val email: String
+)
+// ────────────────────────────────────────────────────────────────────────
+
 // Response model for registration
 data class RegisterResponse(
     val success: Boolean,
@@ -45,6 +51,13 @@ data class LoginResponse(
     val email: String? = null
 )
 
+
+data class ForgotPasswordResponse(
+    val success: Boolean,
+    val message: String? = null
+)
+
+
 // ========== API INTERFACE ==========
 
 interface ApiService {
@@ -53,6 +66,10 @@ interface ApiService {
 
     @POST("auth/login")
     suspend fun loginUser(@Body request: LoginRequest): LoginResponse
+
+    @POST("auth/forgot-password")
+    suspend fun forgotPassword(@Body request: ForgotPasswordRequest): ForgotPasswordResponse
+
 }
 
 // ========== RETROFIT CLIENT ==========

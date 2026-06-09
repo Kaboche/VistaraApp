@@ -14,6 +14,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import coil.compose.AsyncImage
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -101,9 +102,9 @@ fun WildlifeCard(
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
-            // Animal Image from drawable folder
-            Image(
-                painter = painterResource(id = animal.imageRes),
+            // Animal Image from drawable
+            AsyncImage(
+                model = animal.imageRes,
                 contentDescription = animal.name,
                 modifier = Modifier
                     .fillMaxWidth()

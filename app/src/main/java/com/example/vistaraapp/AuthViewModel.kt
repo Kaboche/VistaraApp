@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class AuthViewModel : ViewModel() {
+
     private val repository = AuthRepository()
 
     // Registration state
@@ -17,6 +18,10 @@ class AuthViewModel : ViewModel() {
     // Login state
     private val _loginState = MutableStateFlow<LoginUiState>(LoginUiState.Idle)
     val loginState: StateFlow<LoginUiState> = _loginState.asStateFlow()
+
+    // Forgot Password state
+    private val _forgotPasswordState = MutableStateFlow<ForgotPasswordUiState>(ForgotPasswordUiState.Idle)
+    val forgotPasswordState: StateFlow<ForgotPasswordUiState> = _forgotPasswordState.asStateFlow()
 
     // Registration
     fun registerUser(
@@ -62,6 +67,20 @@ class AuthViewModel : ViewModel() {
         }
     }
 
+    // Forgot Password Network Trigger
+    fun sendPasswordResetEmail(email: String) {
+        viewModelScope.launch {
+            _forgotPasswordState.value = ForgotPasswordUiState.Loading
+
+            val result = repository.forgotPassword(email)
+
+            _forgotPasswordState.value = when (result) {
+                is ForgotPasswordResult.Success -> ForgotPasswordUiState.Success(result.message)
+                is ForgotPasswordResult.Error -> ForgotPasswordUiState.Error(result.message)
+            }
+        }
+    }
+
     // ✅ Reset registration state
     fun resetRegisterState() {
         _registerState.value = RegisterUiState.Idle
@@ -71,7 +90,14 @@ class AuthViewModel : ViewModel() {
     fun resetLoginState() {
         _loginState.value = LoginUiState.Idle
     }
+
+    // ✅ Reset forgot password state
+    fun resetForgotPasswordState() {
+        _forgotPasswordState.value = ForgotPasswordUiState.Idle
+    }
 }
+
+// ─── UI STATES ──────────────────────────────────────────────────────────────
 
 // Registration UI State
 sealed class RegisterUiState {
@@ -87,4 +113,20 @@ sealed class LoginUiState {
     object Loading : LoginUiState()
     data class Success(val response: LoginResponse) : LoginUiState()
     data class Error(val message: String) : LoginUiState()
+}
+
+// Forgot Password UI State
+sealed class ForgotPasswordUiState {
+    object Idle : ForgotPasswordUiState()
+    object Loading : ForgotPasswordUiState()
+    data class Success(val message: String) : ForgotPasswordUiState()
+    data class Error(val message: String) : ForgotPasswordUiState()
+}
+
+// ─── REPOSITORY INTERACTION INTERFACES ──────────────────────────────────────
+
+// Forgot Password Result wrapper to pass data cleanly back from data layer
+sealed class ForgotPasswordResult {
+    data class Success(val message: String) : ForgotPasswordResult()
+    data class Error(val message: String) : ForgotPasswordResult()
 }

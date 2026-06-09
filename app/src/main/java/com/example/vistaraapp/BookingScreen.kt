@@ -6,8 +6,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
@@ -37,7 +36,9 @@ fun BookingScreen(navController: NavController, parkId: Int) {
 
     val park = allParks.find { it.id == parkId } ?: allParks[0]
 
-    var date by remember { mutableStateOf("") }
+    // ✅ FIXED: Both check-in and checkout variables are correctly declared as Strings
+    var chekinDate by remember { mutableStateOf("") }
+    var checkoutDate by remember { mutableStateOf("") }
     var people by remember { mutableStateOf("1") }
     var selectedPaymentMethod by remember { mutableStateOf("M-pesa") }
     var showPaymentDialog by remember { mutableStateOf(false) }
@@ -58,7 +59,8 @@ fun BookingScreen(navController: NavController, parkId: Int) {
                     Text("Payment method: $selectedPaymentMethod")
                     Text("Total amount: KES $totalAmount")
                     Text("Park: ${park.name}")
-                    Text("Date: $date")
+                    Text("Check-in: $chekinDate")
+                    Text("Checkout: $checkoutDate")
                     Spacer(Modifier.height(8.dp))
                     Text("Proceed to pay via $selectedPaymentMethod?", color = Color.Gray)
                 }
@@ -94,7 +96,7 @@ fun BookingScreen(navController: NavController, parkId: Int) {
                 title = { Text("Book Your Visit", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = brandGreen) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Filled.ArrowBack, null, tint = brandGreen)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = brandGreen)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = pureWhite)
@@ -121,7 +123,7 @@ fun BookingScreen(navController: NavController, parkId: Int) {
 
                 Spacer(Modifier.height(32.dp))
 
-                // Booking Details
+                // Booking Details Summary Card
                 Text(
                     text = "Booking Details",
                     fontSize = 20.sp,
@@ -144,14 +146,20 @@ fun BookingScreen(navController: NavController, parkId: Int) {
                             Text(park.name, fontSize = 14.sp, color = Color.Black, fontWeight = FontWeight.SemiBold)
                         }
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("Date:", fontSize = 14.sp, color = darkGray, fontWeight = FontWeight.Medium)
-                            Text(date, fontSize = 14.sp, color = Color.Black, fontWeight = FontWeight.SemiBold)
-                        }
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("Number of People:", fontSize = 14.sp, color = darkGray, fontWeight = FontWeight.Medium)
                             Text("$numberOfPeople", fontSize = 14.sp, color = Color.Black, fontWeight = FontWeight.SemiBold)
                         }
-                        Divider(modifier = Modifier.padding(vertical = 8.dp), color = Color.LightGray)
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Check-in date:", fontSize = 14.sp, color = darkGray, fontWeight = FontWeight.Medium)
+                            Text(chekinDate, fontSize = 14.sp, color = Color.Black, fontWeight = FontWeight.SemiBold)
+                        }
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Checkout date:", fontSize = 14.sp, color = darkGray, fontWeight = FontWeight.Medium)
+                            Text(checkoutDate, fontSize = 14.sp, color = Color.Black, fontWeight = FontWeight.SemiBold)
+                        }
+
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = Color.LightGray)
+
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("Total Amount:", fontSize = 16.sp, color = brandGreen, fontWeight = FontWeight.Bold)
                             Text("KES $totalAmount", fontSize = 16.sp, color = brandGreen, fontWeight = FontWeight.Bold)
@@ -161,10 +169,9 @@ fun BookingScreen(navController: NavController, parkId: Int) {
 
                 Spacer(Modifier.height(32.dp))
 
-                // ✅ FIXED: CHECK IN NOW Button - NO SPACE in route
                 Button(
                     onClick = {
-                        navController.navigate("checkin")  // ✅ Correct - no space
+                        navController.navigate("checkin")
                     },
                     modifier = Modifier.fillMaxWidth().height(56.dp),
                     shape = RoundedCornerShape(35.dp),
@@ -190,12 +197,14 @@ fun BookingScreen(navController: NavController, parkId: Int) {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         Text("Booking Details", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = brandGreen)
 
+                        // --- CHECK-IN DATE FIELD ---
                         OutlinedTextField(
-                            value = date,
-                            onValueChange = { date = it },
-                            label = { Text("Select Date") },
+                            value = chekinDate,
+                            onValueChange = { chekinDate = it },
+                            label = { Text("Checkin Date") },
                             placeholder = { Text("YYYY-MM-DD") },
                             leadingIcon = { Icon(Icons.Filled.DateRange, null, tint = brandGreen) },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text), // ✅ FIXED: Changed to Text for hyphens
                             shape = RoundedCornerShape(12.dp),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = brandGreen,
@@ -204,6 +213,23 @@ fun BookingScreen(navController: NavController, parkId: Int) {
                             )
                         )
 
+                        // --- CHECKOUT DATE FIELD ---
+                        OutlinedTextField(
+                            value = checkoutDate,
+                            onValueChange = { checkoutDate = it },
+                            label = { Text("Checkout Date") },
+                            placeholder = { Text("YYYY-MM-DD") },
+                            leadingIcon = { Icon(Icons.Filled.DateRange, null, tint = brandGreen) },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = brandGreen,
+                                focusedTextColor = Color.Black,
+                                unfocusedTextColor = Color.Black
+                            )
+                        )
+
+                        // --- NUMBER OF PEOPLE FIELD ---
                         OutlinedTextField(
                             value = people,
                             onValueChange = { people = it },
@@ -246,7 +272,7 @@ fun BookingScreen(navController: NavController, parkId: Int) {
 
                         Button(
                             onClick = {
-                                if (date.isBlank()) error = "Please select a date"
+                                if (chekinDate.isBlank() || checkoutDate.isBlank()) error = "Please complete both date fields"
                                 else if (people.toIntOrNull() == null || people.toInt() < 1) error = "Enter valid number of people"
                                 else { error = null; showPaymentDialog = true }
                             },
@@ -333,7 +359,9 @@ fun AfterPaymentPreview() {
                             Text("People:", color = darkGray)
                             Text("2", color = Color.Black, fontWeight = FontWeight.SemiBold)
                         }
-                        Divider(color = Color.LightGray)
+
+                        HorizontalDivider(color = Color.LightGray)
+
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("Total:", color = brandGreen, fontWeight = FontWeight.Bold)
                             Text("KES 1000", color = brandGreen, fontWeight = FontWeight.Bold)

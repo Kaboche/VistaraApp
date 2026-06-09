@@ -4,49 +4,58 @@ import android.content.Intent
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.net.toUri // Added for .toUri() extension
+import androidx.core.net.toUri
 import com.example.vistaraapp.ui.theme.PureWhite
 import com.example.vistaraapp.ui.theme.VistaraTheme
 
-data class EmergencyType(val label: String, val icon: String)
+data class EmergencyType(val label: String, val icon: ImageVector)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EmergencyInfoCard(
     onSendEmergencyReport: (type: String, details: String) -> Unit,
     modifier: Modifier = Modifier,
-    brandGreen: Color = Color(0xFF029602) // Now properly utilized below
+    brandGreen: Color = Color(0xFF029602)
 ) {
     val context = LocalContext.current
     var isBottomSheetOpen by remember { mutableStateOf(false) }
+    var showSuccessDialog by remember { mutableStateOf(false) }
 
     var selectedType by remember { mutableStateOf("") }
     var additionalDetails by remember { mutableStateOf("") }
 
     val emergencyCategories = remember {
         listOf(
-            EmergencyType("Animal Attack", "🐾"),
-            EmergencyType("Medical Crisis", "🚑"),
-            EmergencyType("Wildfire", "🔥"),
-            EmergencyType("Poaching/Crime", "🚨"),
-            EmergencyType("Lost / Stranded", "📍"),
-            EmergencyType("Vehicle Break", "🛠️")
+            EmergencyType("Animal Attack", Icons.Default.Pets),
+            EmergencyType("Medical Crisis", Icons.Default.LocalHospital),
+            EmergencyType("Wildfire", Icons.Default.Whatshot),
+            EmergencyType("Poaching/Crime", Icons.Default.Policy),
+            EmergencyType("Lost / Stranded", Icons.Default.LocationOn),
+            EmergencyType("Vehicle Break", Icons.Default.Build)
+        )
+    }
+
+    // Moved dialog wrapper out here to guarantee rendering context outside the sheet's lifecycle
+    if (showSuccessDialog) {
+        SuccessAlertDialog(
+            visible = showSuccessDialog,
+            brandGreen = brandGreen,
+            onDismiss = { showSuccessDialog = false }
         )
     }
 
@@ -59,35 +68,7 @@ fun EmergencyInfoCard(
         elevation = CardDefaults.cardElevation(2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // Header
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Emergency & Safety",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFFD32F2F)
-                    )
-                }
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = Color(0xFFD32F2F).copy(alpha = 0.15f)
-                ) {
-                    Text(
-                        text = "ACTIVE",
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFFD32F2F),
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                    )
-                }
-            }
-
+            CardHeader()
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
@@ -98,13 +79,28 @@ fun EmergencyInfoCard(
             )
             Spacer(modifier = Modifier.height(8.dp))
 
-            EmergencyContactRow(icon = "", label = "Park Rangers", number = "0700 597 000", textColor = brandGreen) {
+            EmergencyContactRow(
+                icon = Icons.Default.Shield,
+                label = "Park Rangers",
+                number = "0700 597 000",
+                textColor = brandGreen
+            ) {
                 context.startActivity(Intent(Intent.ACTION_DIAL, "tel:0700597000".toUri()))
             }
-            EmergencyContactRow(icon ="", label = "Ambulance", number = "999", textColor = brandGreen) {
+            EmergencyContactRow(
+                icon = Icons.Default.MedicalServices,
+                label = "Ambulance",
+                number = "999",
+                textColor = brandGreen
+            ) {
                 context.startActivity(Intent(Intent.ACTION_DIAL, "tel:999".toUri()))
             }
-            EmergencyContactRow(icon ="", label = "Police", number = "112", textColor = brandGreen) {
+            EmergencyContactRow(
+                icon = Icons.Default.Policy,
+                label = "Police",
+                number = "112",
+                textColor = brandGreen
+            ) {
                 context.startActivity(Intent(Intent.ACTION_DIAL, "tel:112".toUri()))
             }
 
@@ -114,12 +110,12 @@ fun EmergencyInfoCard(
 
             Button(
                 onClick = { isBottomSheetOpen = true },
-                modifier = Modifier.fillMaxWidth().height(48.dp),
-                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                shape = RoundedCornerShape(35.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F))
             ) {
-                Icon(Icons.Filled.Warning, contentDescription = "SOS", tint = Color.White)
-                Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "SOS EMERGENCY REPORT",
                     fontSize = 14.sp,
@@ -129,11 +125,7 @@ fun EmergencyInfoCard(
             }
 
             Spacer(modifier = Modifier.height(12.dp))
-
-            Text(text = "💡 Safety Tips", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = Color(0xFFE65100))
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(text = "• Stay inside your vehicle at all times", fontSize = 11.sp, color = Color.DarkGray)
-            Text(text = "• Keep a safe distance from animals", fontSize = 11.sp, color = Color.DarkGray)
+            SafetyTipsSection()
         }
     }
 
@@ -141,7 +133,7 @@ fun EmergencyInfoCard(
         ModalBottomSheet(
             onDismissRequest = { isBottomSheetOpen = false },
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = Color.White
         ) {
             Column(
                 modifier = Modifier
@@ -164,78 +156,53 @@ fun EmergencyInfoCard(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(2),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.height(140.dp)
-                ) {
-                    items(emergencyCategories) { item ->
-                        val isSelected = selectedType == item.label
-                        OutlinedCard(
-                            onClick = { selectedType = item.label },
-                            shape = RoundedCornerShape(12.dp),
-                            border = BorderStroke(
-                                width = if (isSelected) 2.dp else 1.dp,
-                                color = if (isSelected) Color(0xFFD32F2F) else Color.LightGray
-                            ),
-                            colors = CardDefaults.outlinedCardColors(
-                                containerColor = if (isSelected) Color(0xFFD32F2F).copy(alpha = 0.05f) else Color.Transparent
-                            )
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(12.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Text(item.icon, fontSize = 18.sp)
-                                Text(item.label, fontSize = 13.sp, fontWeight = FontWeight.Medium)
-                            }
-                        }
-                    }
-                }
+                CategoryGrid(
+                    categories = emergencyCategories,
+                    selectedType = selectedType,
+                    onTypeSelect = { selectedType = it }
+                )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
                 OutlinedTextField(
                     value = additionalDetails,
-                    onValueChange = { additionalDetails = it }, // Fixed compiler error
+                    onValueChange = { additionalDetails = it },
                     label = { Text("Describe the situation (optional)") },
                     placeholder = { Text("e.g., Elephant blocking trail, flat tire") },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
-                    maxLines = 3
+                    maxLines = 3,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.Black,
+                        unfocusedTextColor = Color.Black,
+                        focusedLabelColor = Color(0xFFD32F2F),
+                        unfocusedLabelColor = Color.Gray,
+                        focusedPlaceholderColor = Color.Gray,
+                        unfocusedPlaceholderColor = Color.Gray,
+                        focusedBorderColor = Color(0xFFD32F2F),
+                        unfocusedBorderColor = Color.LightGray,
+                        focusedContainerColor = Color.White,
+                        unfocusedContainerColor = Color.White,
+                        cursorColor = Color(0xFFD32F2F)
+                    )
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    OutlinedButton(
-                        onClick = { isBottomSheetOpen = false },
-                        modifier = Modifier.weight(1f), // Fixed '1s' compiler error
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text("Cancel")
-                    }
+                ActionButtonsRow(
+                    isSubmitEnabled = selectedType.isNotEmpty(),
+                    onCancel = { isBottomSheetOpen = false },
+                    onSubmit = {
+                        onSendEmergencyReport(selectedType, additionalDetails)
+                        isBottomSheetOpen = false
+                        // Triggers state rebuild instantly now that it is anchored explicitly outside the sheet block context
+                        showSuccessDialog = true
 
-                    Button(
-                        onClick = {
-                            if (selectedType.isNotEmpty()) {
-                                onSendEmergencyReport(selectedType, additionalDetails)
-                                isBottomSheetOpen = false
-                            }
-                        },
-                        enabled = selectedType.isNotEmpty(),
-                        modifier = Modifier.weight(2f),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F))
-                    ) {
-                        Text("SUBMIT SOS ALERT", fontWeight = FontWeight.Bold)
+                        // Clear entry fields clean for subsequent reports
+                        selectedType = ""
+                        additionalDetails = ""
                     }
-                }
+                )
                 Spacer(modifier = Modifier.height(16.dp))
             }
         }
@@ -243,11 +210,206 @@ fun EmergencyInfoCard(
 }
 
 @Composable
+fun CardHeader() {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "Emergency & Safety",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFFD32F2F)
+            )
+        }
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = Color(0xFFD32F2F).copy(alpha = 0.15f)
+        ) {
+            Text(
+                text = "ACTIVE",
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFFD32F2F),
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+            )
+        }
+    }
+}
+
+@Composable
+fun SafetyTipsSection() {
+    Text(
+        text = " Safety Tips",
+        fontSize = 12.sp,
+        fontWeight = FontWeight.Bold,
+        color = Color(0xFF029602)
+    )
+    Spacer(modifier = Modifier.height(4.dp))
+    Text(
+        text = "• Stay inside your vehicle at all times",
+        fontSize = 11.sp,
+        color = Color.DarkGray
+    )
+    Text(
+        text = "• Keep a safe distance from animals",
+        fontSize = 11.sp,
+        color = Color.DarkGray
+    )
+}
+
+@Composable
+fun CategoryGrid(
+    categories: List<EmergencyType>,
+    selectedType: String,
+    onTypeSelect: (String) -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        val chunks = categories.chunked(2)
+        chunks.forEach { rowItems ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                rowItems.forEach { item ->
+                    val isSelected = selectedType == item.label
+                    OutlinedCard(
+                        onClick = { onTypeSelect(item.label) },
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(
+                            width = if (isSelected) 2.dp else 1.dp,
+                            color = if (isSelected) Color(0xFFD32F2F) else Color.LightGray
+                        ),
+                        colors = CardDefaults.outlinedCardColors(
+                            containerColor = if (isSelected) Color(0xFFFFEBEE) else Color.Transparent
+                        ),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = item.icon,
+                                contentDescription = null,
+                                tint = if (isSelected) Color(0xFFD32F2F) else Color.Gray,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Text(
+                                text = item.label,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = if (isSelected) Color(0xFFD32F2F) else Color.DarkGray
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ActionButtonsRow(
+    isSubmitEnabled: Boolean,
+    onCancel: () -> Unit,
+    onSubmit: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        OutlinedButton(
+            onClick = onCancel,
+            modifier = Modifier.weight(1f),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Text("Cancel")
+        }
+
+        Button(
+            onClick = onSubmit,
+            enabled = isSubmitEnabled,
+            modifier = Modifier.weight(2f),
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(0xFFD32F2F),
+                contentColor = Color.White,
+                disabledContainerColor = Color(0xFFE0E0E0),
+                disabledContentColor = Color.Gray
+            )
+        ) {
+            Text("SUBMIT ALERT", fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SuccessAlertDialog(
+    visible: Boolean,
+    brandGreen: Color,
+    onDismiss: () -> Unit
+) {
+    if (!visible) return
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = PureWhite,
+        confirmButton = {
+            Button(
+                onClick = onDismiss,
+                colors = ButtonDefaults.buttonColors(containerColor = brandGreen)
+            ) {
+                Text("OK", color = Color.White, fontWeight = FontWeight.Bold)
+            }
+        },
+        title = {
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.CheckCircle,
+                    contentDescription = null,
+                    tint = brandGreen,
+                    modifier = Modifier.size(64.dp)
+                )
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Done",
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF1F2937)
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "Your emergency report has been submitted successfully.",
+                    fontSize = 14.sp,
+                    color = Color.Gray,
+                    textAlign = TextAlign.Center
+                )
+            }
+        },
+        shape = RoundedCornerShape(24.dp)
+    )
+}
+
+@Composable
 fun EmergencyContactRow(
-    icon: String,
+    icon: ImageVector,
     label: String,
     number: String,
-    textColor: Color, // Accept parameter to fix unused warning
+    textColor: Color,
     onClick: () -> Unit
 ) {
     Row(
@@ -262,7 +424,12 @@ fun EmergencyContactRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text(icon, fontSize = 14.sp)
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = Color.Gray,
+                modifier = Modifier.size(18.dp)
+            )
             Text(text = label, fontSize = 13.sp, color = Color.DarkGray, fontWeight = FontWeight.Medium)
         }
         Text(text = number, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = textColor)

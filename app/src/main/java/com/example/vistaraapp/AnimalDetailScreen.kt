@@ -1,8 +1,6 @@
 package com.example.vistaraapp
 
 import android.annotation.SuppressLint
-import android.graphics.BitmapFactory
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -11,16 +9,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import androidx.navigation.NavHostController
 import androidx.compose.ui.graphics.Color
 
@@ -32,14 +28,8 @@ fun AnimalDetailScreen(
     modifier: Modifier = Modifier,
     navController: NavHostController
 ) {
-    val context = LocalContext.current
-
-    val sampledBitmap = remember(animal.imageRes) {
-        val options = BitmapFactory.Options().apply {
-            inSampleSize = 2
-        }
-        BitmapFactory.decodeResource(context.resources, animal.imageRes, options)
-    }
+    // Use Coil's AsyncImage for efficient loading and automatic downsampling
+    // No manual bitmap handling is needed; AsyncImage will cache and resize appropriately
 
     Scaffold(
         containerColor = Color.White,
@@ -72,18 +62,16 @@ fun AnimalDetailScreen(
                 .padding(paddingValues) // This padding automatically accounts for the top bar height!
                 .verticalScroll(rememberScrollState())
         ) {
-            sampledBitmap?.let { bitmap ->
-                Image(
-                    bitmap = bitmap.asImageBitmap(),
-                    contentDescription = animal.name,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(300.dp)
-                        .padding(16.dp)
-                        .clip(RoundedCornerShape(24.dp)),
-                    contentScale = ContentScale.Crop
-                )
-            }
+            AsyncImage(
+    model = animal.imageRes,
+    contentDescription = animal.name,
+    modifier = Modifier
+        .fillMaxWidth()
+        .height(300.dp)
+        .padding(16.dp)
+        .clip(RoundedCornerShape(24.dp)),
+    contentScale = ContentScale.Crop
+)
 
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
