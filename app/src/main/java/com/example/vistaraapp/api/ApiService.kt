@@ -1,10 +1,9 @@
 package com.example.vistaraapp.api
 
-import com.example.vistaraapp.Api_requests_responses.MpesaPushRequest
-import com.example.vistaraapp.Api_requests_responses.MpesaPushResponse
-import com.example.vistaraapp.ProfileNetworkRequest
+import com.example.vistaraapp.api_requests_responses.SosRequest
+import com.example.vistaraapp.api_requests_responses.SosResponse
 import com.example.vistaraapp.api_requests_responses.BookingsResponse
-import com.example.vistaraapp.database.ContactEvent
+import com.example.vistaraapp.ProfileNetworkRequest
 import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.Body
@@ -12,10 +11,12 @@ import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.Headers
 import retrofit2.http.POST
+import retrofit2.http.Path
 import retrofit2.http.PUT
-import com.google.gson.annotations.SerializedName
 
-// 1. REQUEST MODEL FOR BOOKING PAYLOAD
+
+// 1. DATA MODELS FOR BOOKINGS & PAYMENTS
+
 data class BookingRequest(
     val checkInDate: String,
     val checkOutDate: String,
@@ -31,7 +32,22 @@ data class BookingCreationResponse(
     val message: String?
 )
 
-//  2. BOOKING ENDPOINTS SERVICE
+//Mpesa
+data class MpesaPushRequest(
+    val amount: Double,
+    val phoneNumber: String,
+    val bookingReference: String,
+    val accountReference: String,
+    val transactionDesc: String
+)
+
+data class MpesaPushResponse(
+    val success: Boolean,
+    val message: String,
+    val checkoutRequestID: String?
+)
+
+// 2. BOOKING & EMERGENCY ENDPOINTS SERVICE
 interface ApiService {
 
     @Headers("ngrok-skip-browser-warning: true")
@@ -40,19 +56,31 @@ interface ApiService {
         @Header("Authorization") token: String
     ): BookingsResponse
 
-    // Cleanly added the POST booking call here with its required @Body payload
     @Headers("ngrok-skip-browser-warning: true")
     @POST("bookings")
     suspend fun proceedToPayment(
         @Header("Authorization") bearerToken: String,
-        @Body bookingData: BookingRequest // 👈 This passes your JSON form body to ngrok
+        @Body bookingData: BookingRequest
     ): Response<BookingCreationResponse>
+
+    @Headers("ngrok-skip-browser-warning: true")
+    @POST("bookings/{bookingId}/cancel")
+    suspend fun cancelBooking(
+        @Header("Authorization") bearerToken: String,
+        @Path("bookingId") bookingId: String
+    ): Response<BookingCreationResponse>
+
+    @Headers("ngrok-skip-browser-warning: true")
+    @POST("emergency/sos")
+    suspend fun triggerSos(
+        @Header("Authorization") bearerToken: String,
+        @Body sosData: SosRequest
+    ): Response<SosResponse>
 }
 
 // 3. PROFILE ENDPOINTS SERVICE
 interface ProfileApiService {
 
-    // UPDATE PROFILE DATA (PUT)
     @PUT("profile")
     suspend fun saveProfileDetails(
         @Header("Authorization") bearerToken: String,
@@ -60,21 +88,20 @@ interface ProfileApiService {
         @Header("ngrok-skip-browser-warning") skip: String = "true"
     ): Response<ResponseBody>
 
-    // FETCH PROFILE DATA (GET)
     @GET("profile")
     suspend fun getProfileDetails(
         @Header("Authorization") bearerToken: String,
         @Header("ngrok-skip-browser-warning") skip: String = "true"
     ): Response<Map<String, Any>>
-
 }
-//Mpesa STK push
-interface  VistaraApi{
+
+
+// 4. M-PESA STK PUSH SERVICE
+interface VistaraApi {
     @Headers("ngrok-skip-browser-warning: true")
     @POST("payments/mpesa/stkpush")
-    suspend fun  initiateStkPush(
+    suspend fun initiateStkPush(
         @Header("Authorization") bearerToken: String,
-        @Body request: MpesaPushRequest//@Body is the information one sends to the server
+        @Body request: MpesaPushRequest
     ): Response<MpesaPushResponse>
 }
-

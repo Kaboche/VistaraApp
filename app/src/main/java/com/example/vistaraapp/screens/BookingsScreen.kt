@@ -1,5 +1,6 @@
 package com.example.vistaraapp.screens
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -9,9 +10,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.navigation.NavController
 import com.example.vistaraapp.viewmodels.BookingUiState
 import com.example.vistaraapp.viewmodels.BookingViewModel
@@ -20,19 +25,39 @@ import com.example.vistaraapp.api_requests_responses.BookingData
 @Composable
 fun BookingsScreen(
     navController: NavController,
-    viewModel: BookingViewModel, // Wired to accept the injected ViewModel
-    authToken: String            // Wired to accept your secure JWT Token
+    viewModel: BookingViewModel,
+    authToken: String
 ) {
     val brandGreen = Color(0xFF029602)
     val lightGray = Color(0xFFF8F9FA)
     val parkName = "Nairobi National Park"
+    val context = LocalContext.current
 
-    // 1. Trigger the network API fetch as soon as this screen enters the composition
-    LaunchedEffect(key1 = authToken) {
-        viewModel.fetchBookings(authToken)
+    // 1. Triggers the network API fetch every time the screen is resumed
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner, authToken) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.fetchBookings(authToken)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
     }
 
-    // 2. Read the current architectural state from our ViewModel
+    // 2. Observes the cancellation status state feedback
+    val cancellationStatus by viewModel.cancellationStatus
+
+    LaunchedEffect(cancellationStatus) {
+        cancellationStatus?.let { statusMessage ->
+            Toast.makeText(context, statusMessage, Toast.LENGTH_LONG).show()
+            viewModel.clearCancellationStatus()
+        }
+    }
+
+    // 3. Read the current architectural state from ViewModel
     val uiState by viewModel.uiState
 
     Surface(
@@ -69,7 +94,6 @@ fun BookingsScreen(
                             )
                         }
 
-                        // Split bookings into Upcoming and Past based on your actual backend paymentStatus or bookingStatus
                         val upcomingBookings = networkBookings.filter { it.bookingStatus == "CONFIRMED" || it.bookingStatus == "PENDING" }
                         val pastBookings = networkBookings.filter { it.bookingStatus == "COMPLETED" || it.bookingStatus == "CANCELLED" }
 
@@ -79,7 +103,12 @@ fun BookingsScreen(
                                 BookingCard(
                                     booking = booking,
                                     parkName = parkName,
-                                    onCancel = { /* Handle cancellation later */ },
+                                    onCancel = {
+                                        //Executes the cancel task on backend when button clicked!
+                                        booking.id?.let { id ->
+                                            viewModel.cancelBooking(authToken, id.toString())
+                                        }
+                                    },
                                     brandGreen = brandGreen
                                 )
                             }
@@ -91,7 +120,7 @@ fun BookingsScreen(
                                 BookingCard(
                                     booking = booking,
                                     parkName = parkName,
-                                    onCancel = null,
+                                    onCancel = null, // Disables button for old history logs
                                     brandGreen = brandGreen
                                 )
                             }
@@ -116,13 +145,13 @@ fun SectionHeader(title: String, brandGreen: Color) {
 
 @Composable
 fun BookingCard(
-    booking: BookingData, // Re-mapped to use your live network model
+    booking: BookingData,
     parkName: String,
     onCancel: (() -> Unit)?,
     brandGreen: Color
 ) {
-    // Dynamically choose colors based on strings sent back from the backend API
-    val statusColor = when (booking.bookingStatus.uppercase()) {
+    val status = booking.bookingStatus ?: "PENDING"
+    val statusColor = when (status.uppercase()) {
         "CONFIRMED", "COMPLETED" -> Color(0xFF4CAF50)
         "PENDING" -> Color(0xFFFF9800)
         else -> Color(0xFFF44336) // CANCELLED
@@ -154,7 +183,7 @@ fun BookingCard(
                     color = statusColor.copy(alpha = 0.15f)
                 ) {
                     Text(
-                        text = booking.bookingStatus,
+                        text = status,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Medium,
                         color = statusColor,
@@ -170,11 +199,11 @@ fun BookingCard(
             DetailRow(label = "Check In Date", value = booking.checkInDate)
             DetailRow(label = "Check Out Date", value = booking.checkOutDate)
             DetailRow(label = "Vehicle Reg", value = booking.vehicleRegistration)
-            DetailRow(label = "Group Size", value = "${booking.groupSize} person(s)")
-            DetailRow(label = "Total Amount", value = "KES ${booking.amount}", valueColor = brandGreen)
+            DetailRow(label = "Group Size", value = "${booking.groupSize ?: 0} person(s)")
+            DetailRow(label = "Total Amount", value = "KES ${booking.amount ?: 0.0}", valueColor = brandGreen)
             DetailRow(label = "Booking Ref", value = booking.bookingReference)
 
-            if ((booking.bookingStatus == "CONFIRMED" || booking.bookingStatus == "PENDING") && onCancel != null) {
+            if ((status.uppercase() == "CONFIRMED" || status.uppercase() == "PENDING") && onCancel != null) {
                 Spacer(modifier = Modifier.height(12.dp))
                 Button(
                     onClick = onCancel,
@@ -190,14 +219,14 @@ fun BookingCard(
 }
 
 @Composable
-fun DetailRow(label: String, value: String, valueColor: Color = Color.Black) {
+fun DetailRow(label: String, value: String?, valueColor: Color = Color.Black) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(text = label, fontSize = 13.sp, color = Color.Gray, fontWeight = FontWeight.Medium)
-        Text(text = value, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = valueColor)
+        Text(text = value ?: "N/A", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = valueColor)
     }
 }
 

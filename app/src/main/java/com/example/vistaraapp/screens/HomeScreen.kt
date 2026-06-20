@@ -1,6 +1,7 @@
 package com.example.vistaraapp.screens
 
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -20,6 +21,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -29,13 +31,16 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.vistaraapp.R
+import com.example.vistaraapp.viewmodels.BookingViewModel
 import com.example.vistaraapp.viewmodels.WeatherState
 import com.example.vistaraapp.viewmodels.WeatherViewModel
 import com.example.vistaraapp.entities_dataclass.getWeatherDescription
 import com.example.vistaraapp.entities_dataclass.getWeatherEmoji
 import com.example.vistaraapp.ui.theme.VistaraTheme
+import com.example.vistaraapp.viewmodel.SosViewModel
 import kotlinx.coroutines.delay
 import java.util.Calendar
+import kotlin.time.Duration.Companion.seconds
 
 // ========== DYNAMIC CONTENT HELPERS ==========
 fun getDynamicGreeting(): String {
@@ -49,24 +54,61 @@ fun getDynamicGreeting(): String {
 fun getDynamicBoldPhrase(): String {
     return when (Calendar.getInstance().get(Calendar.HOUR_OF_DAY)) {
         in 0..11 -> "Nairobi is Waking Up!"
-        in 12..16 -> "The Savannah Awaits You!"
+        in 12..16 -> "The Savanna Awaits You!"
         else -> "Unwind in the Wild Tonight!"
     }
 }
 
-// ========== MAIN HOME SCREEN ENTRIES ==========
-
+// MAIN HOME SCREEN ENTRIES
 @Composable
 fun HomeScreen(
     navController: NavController,
-    weatherViewModel: WeatherViewModel
+    weatherViewModel: WeatherViewModel,
+    viewModel: BookingViewModel,
+    sosViewModel: SosViewModel,
+    authToken: String
 ) {
     val weatherState by weatherViewModel.weatherState.collectAsState()
+    val context = LocalContext.current
+    val sosStatus by viewModel.sosStatus
+    val sosMessage = sosViewModel.sosMessage
+
+    LaunchedEffect(sosStatus) {
+        sosStatus?.let { statusMessage ->
+            Toast.makeText(context, statusMessage, Toast.LENGTH_LONG).show()
+            viewModel.clearSosStatus()
+        }
+    }
+
+    LaunchedEffect(sosMessage) {
+        sosMessage?.let { msg ->
+            Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+        }
+    }
 
     HomeScreenContent(
         navController = navController,
         weatherState = weatherState,
-        onRetryWeather = { weatherViewModel.fetchWeather() }
+        onRetryWeather = { weatherViewModel.fetchWeather() },
+        onSendEmergencyReport = { emergencyType, details ->
+            val mappedType = when (emergencyType.trim()) {
+                "Wildlife Encounter" -> "WILDLIFE_ENCOUNTER"
+                "Medical" -> "MEDICAL"
+                "Accident" -> "ACCIDENT"
+                "Lost" -> "LOST"
+                "General Distress" -> "GENERAL_DISTRESS"
+                "Vehicle Breakdown" -> "VEHICLE_BREAKDOWN"
+                else -> "GENERAL_DISTRESS"
+            }
+
+            // Utilizing sosViewModel to automatically track and dispatch the real-time hardware location
+            Log.d("HomeScreen", "Triggering SOS via sosViewModel for type: $mappedType")
+            sosViewModel.triggerEmergencySos(
+                context = context,
+                alertType = mappedType,
+                message = "Emergency Type: $emergencyType. Details: $details"
+            )
+        }
     )
 }
 
@@ -75,7 +117,8 @@ fun HomeScreen(
 fun HomeScreenContent(
     navController: NavController,
     weatherState: WeatherState,
-    onRetryWeather: () -> Unit
+    onRetryWeather: () -> Unit,
+    onSendEmergencyReport: (type: String, details: String) -> Unit
 ) {
     val brandGreen = Color(0xFF029602)
     val pureWhite = Color(0xFFFFFFFF)
@@ -174,10 +217,12 @@ fun HomeScreenContent(
                         modifier = Modifier
                             .padding(24.dp)
                             .clickable(enabled = false) { }
-                    ) {// calls emergency info card
+                    ) {
+                        // calls emergency info card
                         EmergencyInfoCard(
-                            onSendEmergencyReport = { emergencyType, details ->
-                                Log.d("Emergency", "Type: $emergencyType, Details: $details")
+                            onSendEmergencyReport = { type, details ->
+                                onSendEmergencyReport(type, details)
+                                showEmergencyOverlay = false
                             },
                             brandGreen = brandGreen
                         )
@@ -188,7 +233,7 @@ fun HomeScreenContent(
     }
 }
 
-// ========== 1. THREE-LINE DYNAMIC HERO CARD ==========
+//  1. THREE-LINE DYNAMIC HERO CARD
 @Composable
 fun HeroDashboardCard(weatherState: WeatherState) {
     val greeting = getDynamicGreeting()
@@ -202,12 +247,12 @@ fun HeroDashboardCard(weatherState: WeatherState) {
         R.drawable.captivity
     )
 
-    // Optimized: Uses mutableIntStateOf to avoid autoboxing allocations
     var currentImageIndex by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(Unit) {
         while (true) {
-            delay(4000L)
+            // Upgraded: Converted long millisecond parameter to standard Duration overload
+            delay(4.seconds)
             currentImageIndex = (currentImageIndex + 1) % heroImages.size
         }
     }
@@ -311,7 +356,7 @@ fun HeroDashboardCard(weatherState: WeatherState) {
     }
 }
 
-// ========== 2. STATS ROW ==========
+// 2. STATS ROW
 @Composable
 fun StatsRow() {
     Row(
@@ -347,7 +392,7 @@ fun StatCard(value: String, label: String, color: Color, modifier: Modifier = Mo
     }
 }
 
-// ========== 3. REAL-TIME WEATHER CARD ==========
+//  3. REAL-TIME WEATHER CARD
 @Composable
 fun RealTimeWeatherCard(
     brandGreen: Color,
@@ -428,7 +473,7 @@ fun RealTimeWeatherCard(
     }
 }
 
-// ========== 4. SAFARI DISCOVERY CARD ==========
+//  4. SAFARI DISCOVERY CARD
 @Composable
 fun WildlifeDiscoveryCard(navController: NavController, brandGreen: Color) {
     Card(
@@ -502,7 +547,7 @@ fun WildlifeDiscoveryCard(navController: NavController, brandGreen: Color) {
     }
 }
 
-// ========== 5. KINGFISHER PICNIC SITE CARD ==========
+// 5. KINGFISHER PICNIC SITE CARD
 @Composable
 fun PicnicSiteCard() {
     Card(
@@ -525,7 +570,7 @@ fun PicnicSiteCard() {
                 }
             }
             Spacer(Modifier.height(8.dp))
-            Text("Perfect spot for a picnic with family. Enjoy the stunning views of the savannah and wildlife.", fontSize = 13.sp, color = Color.Gray)
+            Text("Perfect spot for a picnic with family. Enjoy the stunning views of the savanna and wildlife.", fontSize = 13.sp, color = Color.Gray)
             Spacer(Modifier.height(12.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 InfoChip("2.5 km from Main Gate")
@@ -546,7 +591,7 @@ fun InfoChip(text: String) {
     }
 }
 
-// ========== CLEAN PREVIEW IMPLEMENTATION ==========
+// Preview setup
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun HomeScreenPreview() {
@@ -556,7 +601,8 @@ fun HomeScreenPreview() {
         HomeScreenContent(
             navController = dummyNavController,
             weatherState = WeatherState.Loading,
-            onRetryWeather = {}
+            onRetryWeather = {},
+            onSendEmergencyReport = { _, _ -> }
         )
     }
 }

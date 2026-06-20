@@ -51,7 +51,8 @@ class AuthRepository(private val contactDao: ContactDao) {
                         phoneNumber = sanitizedPhone,
                         idNumber = nationalId,
                         emergencyNumber = sanitizedEmergencyPhone,
-                        password = password
+                        password = password,
+                        isCurrentUser = true
                     )
                     contactDao.upsertContact(newUser)
                     RegisterResult.Success(response)

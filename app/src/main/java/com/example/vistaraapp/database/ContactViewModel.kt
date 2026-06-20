@@ -1,14 +1,11 @@
-package com.example.vistaraapp.viewmodels
+package com.example.vistaraapp.database
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.vistaraapp.database.ContactEvent
-import com.example.vistaraapp.database.ContactState
-import com.example.vistaraapp.database.SortType
-import com.example.vistaraapp.database.ContactDao
-import com.example.vistaraapp.database.Contact
-import com.example.vistaraapp.Api_requests_responses.MpesaPushRequest //Import request model
-import com.example.vistaraapp.api.RetrofitClient // Import your RetrofitClient
+import com.example.vistaraapp.api.BookingRequest
+import com.example.vistaraapp.api.MpesaPushRequest
+import com.example.vistaraapp.api.RetrofitClient
+import com.example.vistaraapp.utils.TokenManager
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -46,13 +43,37 @@ class ContactViewModel(
     private val _userProfile = dao.getUserProfile()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    val state = combine(_state, _sortType, _contacts, _userProfile) { state, sortType, contacts, userProfile ->
+    val state = combine(
+        _state,
+        _sortType,
+        _contacts,
+        _userProfile
+    ) { state, sortType, contacts, userProfile ->
         state.copy(
             contacts = contacts,
             sortType = sortType,
             userProfile = userProfile
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ContactState())
+
+    init {
+        viewModelScope.launch {
+            dao.getUserProfile().collect { profile ->
+                if (profile != null) {
+                    _state.update {
+                        it.copy(
+                            fullName = profile.fullName,
+                            email = profile.email,
+                            phoneNumber = profile.phoneNumber,
+                            password = profile.password,
+                            idNumber = profile.idNumber,
+                            emergencyNumber = profile.emergencyNumber
+                        )
+                    }
+                }
+            }
+        }
+    }
 
     fun onEvent(event: ContactEvent) {
         when (event) {
@@ -110,7 +131,8 @@ class ContactViewModel(
                     phoneNumber = sanitizedPhone,
                     password = password,
                     idNumber = idNumber,
-                    emergencyNumber = sanitizedEmergencyPhone
+                    emergencyNumber = sanitizedEmergencyPhone,
+                    isCurrentUser = true
                 )
 
                 viewModelScope.launch {
@@ -176,10 +198,10 @@ class ContactViewModel(
                     _state.update { it.copy(isBookingLoading = true, bookingErrorMessage = null) }
                     try {
                         val current = _state.value
-                        val token = com.example.vistaraapp.utils.TokenManager.getToken() ?: ""
+                        val token = TokenManager.getToken() ?: ""
                         val bearerToken = if (token.startsWith("Bearer ")) token else "Bearer $token"
 
-                        val request = com.example.vistaraapp.api.BookingRequest(
+                        val request = BookingRequest(
                             checkInDate = current.checkInDate,
                             checkOutDate = current.checkOutDate,
                             groupSize = current.groupSize,
@@ -193,10 +215,13 @@ class ContactViewModel(
 
                         if (response.isSuccessful) {
                             val bookingRef = response.body()?.bookingReference ?: run {
-                                val timestamp = SimpleDateFormat("yyyyMMdd-HHmm", Locale.getDefault()).format(Date())
+                                val timestamp = SimpleDateFormat(
+                                    "yyyyMMdd-HHmm",
+                                    Locale.getDefault()
+                                ).format(Date())
                                 "VST-$timestamp"
                             }
-                            
+
                             _state.update {
                                 it.copy(
                                     isBookingLoading = false,
@@ -229,7 +254,7 @@ class ContactViewModel(
                     _state.update { it.copy(isBookingLoading = true, bookingErrorMessage = null) }
                     try {
                         val current = _state.value
-                        val token = com.example.vistaraapp.utils.TokenManager.getToken() ?: ""
+                        val token = TokenManager.getToken() ?: ""
                         val bearerToken = if (token.startsWith("Bearer ")) token else "Bearer $token"
 
                         var formattedPhone = event.phoneNumber.replace(Regex("[^0-9]"), "")
@@ -243,23 +268,24 @@ class ContactViewModel(
 
                         // Step 2: Use the booking reference to initiate the M-Pesa STK Push
                         val mpesaPayload = MpesaPushRequest(
-                            phoneNumber = formattedPhone, // Typed number from prompt view
-                            amount = current.amount.toInt().coerceAtLeast(10), // Ensures dynamic math conversion floor
+                            amount = current.amount.coerceAtLeast(10.0),
+                            phoneNumber = formattedPhone,
+                            bookingReference = current.bookingReference ?: "VST-Fallback",
                             accountReference = current.bookingReference ?: "VST-Fallback",
-                            transactionDesc = "Vistara Park Entry Payment"
+                            transactionDesc = "Booking Payment"
                         )
 
                         // Pointing to the mpesa api reference wrapper service instance inside RetrofitClient
                         val mpesaResponse = RetrofitClient.mpesaInstance.initiateStkPush(bearerToken, mpesaPayload)
 
-                        if (mpesaResponse.isSuccessful && mpesaResponse.body()?.responseCode == "0") {
+                        if (mpesaResponse.isSuccessful && mpesaResponse.body()?.success == true) {
                             // Daraja request creation completed perfectly!
                             _state.update {
                                 it.copy(isBookingLoading = false, isBookingSuccessful = true, showPaymentDialog = false)
                             }
                         } else {
                             // M-Pesa API rejected details (e.g. invalid safaricom number format)
-                            val mpesaErrorReason = mpesaResponse.body()?.responseDescription ?: "M-Pesa validation rejection."
+                            val mpesaErrorReason = mpesaResponse.body()?.message ?: "M-Pesa validation rejection."
                             _state.update {
                                 it.copy(
                                     isBookingLoading = false,

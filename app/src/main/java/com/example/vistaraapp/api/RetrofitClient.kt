@@ -38,7 +38,7 @@ object RetrofitClient {
             .create(ApiAuthService::class.java)
     }
 
-    // 2. Bookings instance built completely standalone
+    // 2. Bookings  & SOS
     val bookingInstance: ApiService by lazy {
         Retrofit.Builder()
             .baseUrl(BASE_URL)
@@ -67,4 +67,6 @@ object RetrofitClient {
             .build()
             .create(VistaraApi::class.java)
     }
+
+
 }

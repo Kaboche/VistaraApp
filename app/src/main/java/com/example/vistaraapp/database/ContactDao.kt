@@ -5,7 +5,7 @@ import androidx.room.Delete
 import androidx.room.Query
 import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
-
+//This is the brain  that talks to  my database
 @Dao
 interface ContactDao {
 
@@ -35,6 +35,6 @@ interface ContactDao {
     suspend fun getContactByEmail(email: String): Contact?
 
     // Reactive stream for the single user profile row (always id = 1)
-    @Query("SELECT * FROM contact WHERE id = 1 LIMIT 1")
+    @Query("SELECT * FROM contact WHERE isCurrentUser = 1 LIMIT 1")
     fun getUserProfile(): Flow<Contact?>
 }

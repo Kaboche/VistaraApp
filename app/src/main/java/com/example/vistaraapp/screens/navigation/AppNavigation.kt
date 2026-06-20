@@ -16,8 +16,8 @@ import com.example.vistaraapp.database.*
 import com.example.vistaraapp.entities_dataclass.uniqueAnimals
 import com.example.vistaraapp.repositories.*
 import com.example.vistaraapp.screens.*
-
 import com.example.vistaraapp.viewmodels.*
+import com.example.vistaraapp.viewmodel.SosViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -26,6 +26,7 @@ import kotlinx.coroutines.withContext
 fun AppNavigation(
     navController: NavHostController,
     contactViewModel: ContactViewModel,
+    bookingViewModel: BookingViewModel,
     contactState: ContactState,
     contactDao: ContactDao,
     sessionToken: String,
@@ -47,7 +48,7 @@ fun AppNavigation(
         modifier = modifier
     ) {
 
-        //  LOGIN
+        // LOGIN
         composable("login") {
 
             val loginViewModel: LoginViewModel = viewModel(
@@ -82,30 +83,31 @@ fun AppNavigation(
             )
         }
 
-        //  REGISTER
+        // REGISTER
         composable("register") {
 
             val authViewModel: AuthViewModel = viewModel(
                 factory = viewModelFactory {
                     initializer {
-                        AuthRepository(contactDao).let { AuthViewModel(it) }
+                        AuthViewModel(AuthRepository(contactDao))
                     }
                 }
             )
 
             RegisterScreen(
                 navController = navController,
-                authViewModel = authViewModel
+                authViewModel = authViewModel,
+                contactViewModel = contactViewModel
             )
         }
 
-        //  FORGOT PASSWORD
+        // FORGOT PASSWORD
         composable("forgot_password") {
 
             val authViewModel: AuthViewModel = viewModel(
                 factory = viewModelFactory {
                     initializer {
-                        AuthRepository(contactDao).let { AuthViewModel(it) }
+                        AuthViewModel(AuthRepository(contactDao))
                     }
                 }
             )
@@ -116,30 +118,26 @@ fun AppNavigation(
             )
         }
 
-        //  HOME
+        // HOME
         composable("home") {
             val weatherViewModel: WeatherViewModel = viewModel()
-            HomeScreen(navController, weatherViewModel)
+            val sosViewModel: SosViewModel = viewModel()
+            HomeScreen(
+                navController = navController,
+                weatherViewModel = weatherViewModel,
+                viewModel = bookingViewModel,
+                sosViewModel = sosViewModel,
+                authToken = tokenState.value
+            )
         }
 
-        //  WILDLIFE
+        // WILDLIFE
         composable("wildlife") {
             WildlifeScreen(navController)
         }
 
-        //  BOOKINGS
+        // BOOKINGS
         composable("bookings") {
-
-            val bookingViewModel: BookingViewModel = viewModel(
-                factory = viewModelFactory {
-                    initializer {
-                        BookingViewModel(
-                            BookingRepository(RetrofitClient.bookingInstance)
-                        )
-                    }
-                }
-            )
-
             BookingsScreen(
                 navController = navController,
                 viewModel = bookingViewModel,
@@ -147,7 +145,7 @@ fun AppNavigation(
             )
         }
 
-        //  PROFILE
+        // PROFILE
         composable("profile") {
 
             ProfileScreen(
@@ -158,14 +156,14 @@ fun AppNavigation(
             )
         }
 
-        //  EDIT PROFILE
+        // EDIT PROFILE
         composable("edit_profile") {
 
             EditProfileScreen(
                 navController = navController,
                 state = currentContactState.value,
                 onEvent = contactViewModel::onEvent,
-                onSaveProfileApi = { fullName, phone, email, emergencyPhone ->
+                onSaveProfileApi = { fullName, phone, _, emergencyPhone ->
 
                     coroutineScope.launch(Dispatchers.IO) {
                         try {
@@ -197,7 +195,7 @@ fun AppNavigation(
             )
         }
 
-        //  ANIMAL DETAILS
+        // ANIMAL DETAILS
         composable("animal/{animalId}") { backStackEntry ->
 
             val animalId = backStackEntry.arguments
@@ -212,7 +210,7 @@ fun AppNavigation(
             )
         }
 
-        // ───────── BOOKING FORM ─────────
+        // BOOKING FORM
         composable("booking/{parkId}") { backStackEntry ->
             val parkId = backStackEntry.arguments
                 ?.getString("parkId")
@@ -225,12 +223,12 @@ fun AppNavigation(
             )
         }
 
-        // ───────── RESET PASSWORD ─────────
+        // RESET PASSWORD
         composable("reset_password") {
             ResetPasswordScreen(navController = navController)
         }
 
-        // ───────── EXTRA SCREENS ─────────
+        // EXTRA SCREENS
         composable("check_in") { CheckInScreen(navController) }
         composable("map_tracking") { MapTrackingScreen(navController) }
         composable("notifications") { NotificationScreen(navController) }

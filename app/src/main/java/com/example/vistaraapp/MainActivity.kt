@@ -17,28 +17,39 @@ import androidx.navigation.compose.rememberNavController
 import androidx.room.Room
 import com.example.vistaraapp.database.ContactDatabase
 import com.example.vistaraapp.database.ContactDao
+import com.example.vistaraapp.repositories.BookingRepository
 import com.example.vistaraapp.screens.navigation.AppNavigation
 import com.example.vistaraapp.screens.navigation.ModernBottomBar
 import com.example.vistaraapp.ui.theme.VistaraTheme
 import com.example.vistaraapp.utils.TokenManager
-import com.example.vistaraapp.viewmodels.ContactViewModel
+import com.example.vistaraapp.viewmodels.BookingViewModel
+import com.example.vistaraapp.database.ContactViewModel
 
 class MainActivity : ComponentActivity() {
 
     private val db by lazy {
-        Room.databaseBuilder(
-            applicationContext,
-            ContactDatabase::class.java,
-            "contacts.db"
-        ).build()
+        ContactDatabase.getDatabase(applicationContext)
     }
-//Dependency injection
+    // 1. Dependency injection for Contacts
     private val contactViewModel by viewModels<ContactViewModel>(
         factoryProducer = {
             object : ViewModelProvider.Factory {
                 @Suppress("UNCHECKED_CAST")
                 override fun <T : ViewModel> create(modelClass: Class<T>): T {
                     return ContactViewModel(db.dao) as T
+                }
+            }
+        }
+    )
+
+    // 🚨 FIX 1: ADDED DEPENDENCY INJECTION FOR BOOKING/SOS VIEWMODEL
+    private val bookingViewModel by viewModels<BookingViewModel>(
+        factoryProducer = {
+            object : ViewModelProvider.Factory {
+                @Suppress("UNCHECKED_CAST")
+                override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                    val repository = BookingRepository(com.example.vistaraapp.api.RetrofitClient.bookingInstance)
+                    return BookingViewModel(repository) as T
                 }
             }
         }
@@ -51,9 +62,10 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             VistaraTheme {
-                // Passes db.dao directly into the main entry function layout
+                // 🚨 FIX 2: PASSED BOOKING VIEWMODEL INTO VISTARAAPP
                 VistaraApp(
                     contactViewModel = contactViewModel,
+                    bookingViewModel = bookingViewModel,
                     contactDao = db.dao
                 )
             }
@@ -64,13 +76,12 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun VistaraApp(
     contactViewModel: ContactViewModel,
+    bookingViewModel: BookingViewModel,
     contactDao: ContactDao
 ) {
     val navController = rememberNavController()
     var isLoggedIn by remember { mutableStateOf(TokenManager.getToken()?.isNotEmpty() == true) }
 
-    // Token is saved RIGHT HERE in memory and persisted.
-    // This state stays alive as long as VistaraApp is running, surviving all screen navigation changes.
     var sessionToken by remember { mutableStateOf(TokenManager.getToken() ?: "") }
     val contactState by contactViewModel.state.collectAsState()
 
@@ -85,6 +96,9 @@ fun VistaraApp(
                     ModernBottomBar(
                         currentRoute = currentRoute,
                         onItemSelected = { route ->
+                            if (route == "bookings") {
+                                bookingViewModel.fetchBookings(sessionToken)
+                            }
                             navController.navigate(route) {
                                 popUpTo("home") { saveState = true }
                                 launchSingleTop = true
@@ -100,11 +114,10 @@ fun VistaraApp(
             navController = navController,
             contactViewModel = contactViewModel,
             contactState = contactState,
+            bookingViewModel = bookingViewModel, // Safely moving into AppNavigation graph
             contactDao = contactDao,
-            sessionToken = sessionToken, // Passes down the current token value string
+            sessionToken = sessionToken,
 
-            /*2. FIX: Explicitly name the incoming string parameter to guarantee
-            that the state variable updates properly when LoginScreen triggers it.*/
             onTokenUpdated = { newTokenString ->
                 sessionToken = newTokenString
                 TokenManager.saveToken(newTokenString)

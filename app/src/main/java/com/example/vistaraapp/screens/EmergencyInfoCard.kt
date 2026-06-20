@@ -41,12 +41,12 @@ fun EmergencyInfoCard(
 
     val emergencyCategories = remember {
         listOf(
-            EmergencyType("Animal Attack", Icons.Default.Pets),
-            EmergencyType("Medical Crisis", Icons.Default.LocalHospital),
-            EmergencyType("Wildfire", Icons.Default.Whatshot),
-            EmergencyType("Poaching/Crime", Icons.Default.Policy),
-            EmergencyType("Lost / Stranded", Icons.Default.LocationOn),
-            EmergencyType("Vehicle Break", Icons.Default.Build)
+            EmergencyType("Wildlife Encounter", Icons.Default.Pets),
+            EmergencyType("Medical ", Icons.Default.LocalHospital),
+            EmergencyType("Accident", Icons.Default.Whatshot),
+            EmergencyType("Lost", Icons.Default.Policy),
+            EmergencyType("General Distress", Icons.Default.LocationOn),
+            EmergencyType("Vehicle Breakdown", Icons.Default.Build)
         )
     }
 

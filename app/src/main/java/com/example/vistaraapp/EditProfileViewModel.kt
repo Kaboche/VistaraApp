@@ -75,7 +75,8 @@ class EditProfileViewModel(
                 phoneNumber = currentState.phoneNumber,
                 password = currentState.password,
                 idNumber = currentState.idNumber,
-                emergencyNumber = currentState.emergencyNumber
+                emergencyNumber = currentState.emergencyNumber,
+                isCurrentUser = true
             )
             dao.upsertContact(contactEntity)
         }

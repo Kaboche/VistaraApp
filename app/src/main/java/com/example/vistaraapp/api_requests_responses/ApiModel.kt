@@ -23,17 +23,17 @@ data class BookingsResponse(
 
 // Individual booking details inside the list
 data class BookingData(
-    @field:SerializedName("id") val id: Int,
-    @field:SerializedName("userId") val userId: Int,
-    @field:SerializedName("bookingReference") val bookingReference: String,
-    @field:SerializedName("amount") val amount: Double,
-    @field:SerializedName("groupSize") val groupSize: Int,
-    @field:SerializedName("checkInDate") val checkInDate: String,
-    @field:SerializedName("checkOutDate") val checkOutDate: String,
-    @field:SerializedName("vehicleRegistration") val vehicleRegistration: String,
-    @field:SerializedName("paymentMethod") val paymentMethod: String,
-    @field:SerializedName("paymentReference") val paymentReference: String,
-    @field:SerializedName("paymentStatus") val paymentStatus: String,
-    @field:SerializedName("bookingStatus") val bookingStatus: String,
-    @field:SerializedName("createdAt") val createdAt: String
+    @field:SerializedName("id") val id: Int?,
+    @field:SerializedName("userId") val userId: Int?,
+    @field:SerializedName("bookingReference") val bookingReference: String?,
+    @field:SerializedName("amount") val amount: Double?,
+    @field:SerializedName("groupSize") val groupSize: Int?,
+    @field:SerializedName("checkInDate") val checkInDate: String?,
+    @field:SerializedName("checkOutDate") val checkOutDate: String?,
+    @field:SerializedName("vehicleRegistration") val vehicleRegistration: String?,
+    @field:SerializedName("paymentMethod") val paymentMethod: String?,
+    @field:SerializedName("paymentReference") val paymentReference: String?,
+    @field:SerializedName("paymentStatus") val paymentStatus: String?,
+    @field:SerializedName("bookingStatus") val bookingStatus: String?,
+    @field:SerializedName("createdAt") val createdAt: String?
 )

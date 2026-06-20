@@ -1,18 +1,23 @@
 package com.example.vistaraapp.screens
 
+import android.content.Context
+import android.content.ContextWrapper
 import android.util.Patterns
+import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.font.FontWeight
@@ -20,15 +25,21 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.vistaraapp.database.ContactEvent
+import com.example.vistaraapp.database.ContactViewModel
 import com.example.vistaraapp.viewmodels.AuthViewModel
 import com.example.vistaraapp.viewmodels.RegisterUiState
+import com.example.vistaraapp.viewmodels.ViewModelFactory
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterScreen(
     navController: NavController,
-    authViewModel: AuthViewModel = viewModel()
+    authViewModel: AuthViewModel = viewModel(),
+    contactViewModel: ContactViewModel
 ) {
+    val context = LocalContext.current
+
     // State variables for each input field
     var fullName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
@@ -48,7 +59,6 @@ fun RegisterScreen(
     LaunchedEffect(registerState) {
         when (registerState) {
             is RegisterUiState.Success -> {
-                // Registration successful - go back to login
                 navController.popBackStack()
                 authViewModel.resetRegisterState()
             }
@@ -59,7 +69,7 @@ fun RegisterScreen(
         }
     }
 
-    // Brand Colors
+    // Brand Colors (100% Preserved)
     val brandGreen = Color(0xFF029602)
     val pureWhite = Color(0xFFFFFFFF)
     val lightGray = Color(0xFFF5F5F5)
@@ -81,7 +91,7 @@ fun RegisterScreen(
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
-                            Icons.Filled.ArrowBack,
+                            Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
                             tint = brandGreen
                         )
@@ -261,6 +271,16 @@ fun RegisterScreen(
                                 password.length < 6 -> errorMessage = "Password must be at least 6 characters"
                                 else -> {
                                     errorMessage = null
+
+                                    // Sending inputs to ViewModel safely
+                                    contactViewModel.onEvent(ContactEvent.SetFullName(fullName))
+                                    contactViewModel.onEvent(ContactEvent.SetEmail(email))
+                                    contactViewModel.onEvent(ContactEvent.SetPhoneNumber(phoneNumber))
+                                    contactViewModel.onEvent(ContactEvent.SetPassword(password))
+                                    contactViewModel.onEvent(ContactEvent.SetIdNumber(nationalIdNo))
+                                    contactViewModel.onEvent(ContactEvent.SetEmergencyNumber(emergencyContactPhone))
+                                    contactViewModel.onEvent(ContactEvent.SaveContact)
+
                                     authViewModel.registerUser(
                                         email = email,
                                         password = password,
@@ -303,7 +323,7 @@ fun RegisterScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
-                            text = "Already have an account? Login",
+                            text = "Already have an account? Log in",
                             color = brandGreen,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Medium
@@ -315,7 +335,6 @@ fun RegisterScreen(
     }
 }
 
-// Helper function for consistent text field colors
 @Composable
 private fun textFieldColors(brandGreen: Color) = OutlinedTextFieldDefaults.colors(
     focusedBorderColor = brandGreen,
@@ -325,3 +344,14 @@ private fun textFieldColors(brandGreen: Color) = OutlinedTextFieldDefaults.color
     unfocusedTextColor = Color.Black
 )
 
+// Helper extension function to securely unwrap Context into a ComponentActivity
+private fun Context.findActivity(): ComponentActivity? {
+    var currentContext = this
+    while (currentContext is ContextWrapper) {
+        if (currentContext is ComponentActivity) {
+            return currentContext
+        }
+        currentContext = currentContext.baseContext
+    }
+    return null
+}

@@ -79,7 +79,7 @@ fun BookingScreen(
                         fontSize = 14.sp
                     )
 
-                    // ✅ FIX 2: Point value and onValueChange to use the independent local variable safely
+                    //  FIX 2: Point value and onValueChange to use the independent local variable safely
                     OutlinedTextField(
                         value = stkPhoneNumber,
                         onValueChange = { stkPhoneNumber = it },
@@ -106,11 +106,11 @@ fun BookingScreen(
                     onClick = {
                         if (!isButtonClicked) {
                             isButtonClicked = true // Lock interface
-                            // ✅ FIX 3: Pass your isolated local number variable down to your ViewModel payload!
+                            //  FIX 3: Pass your isolated local number variable down to your ViewModel payload!
                             onEvent(ContactEvent.ConfirmBookingPayment(stkPhoneNumber))
                         }
                     },
-                    // ✅ FIX 4: Validate against the typed dialog field instead of state.phoneNumber
+                    // FIX 4: Validate against the typed dialog field instead of state.phoneNumber
                     enabled = !state.isBookingLoading && stkPhoneNumber.isNotBlank() && !isButtonClicked,
                     colors = ButtonDefaults.buttonColors(brandGreen)
                 ) {
@@ -282,7 +282,7 @@ fun BookingScreen(
                             onValueChange = {
                                 val parsedInt = it.toIntOrNull() ?: 0
                                 onEvent(ContactEvent.EnteredGroupSize(parsedInt))
-                                onEvent(ContactEvent.EnteredAmount(parsedInt * 500.0))
+                                onEvent(ContactEvent.EnteredAmount(parsedInt * 1.0))
                             },
                             label = { Text("Number of People") },
                             leadingIcon = { Icon(Icons.Filled.Person, null, tint = brandGreen) },

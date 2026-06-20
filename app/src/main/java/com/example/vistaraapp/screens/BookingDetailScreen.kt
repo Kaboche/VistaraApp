@@ -91,7 +91,8 @@ fun BookingDetailScreen(
                     }
                 } else {
                     // Match live API status colors safely using explicit Strings
-                    val statusColor = when (booking.bookingStatus.uppercase()) {
+                    val status = booking.bookingStatus ?: "PENDING"
+                    val statusColor = when (status.uppercase()) {
                         "CONFIRMED", "COMPLETED" -> Color(0xFF4CAF50)
                         "PENDING" -> Color(0xFFFF9800)
                         else -> Color(0xFFF44336) // CANCELLED
@@ -117,12 +118,12 @@ fun BookingDetailScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "Status: ${booking.bookingStatus}",
+                                    text = "Status: $status",
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = statusColor
                                 )
-                                if (booking.bookingStatus == "CONFIRMED" || booking.bookingStatus == "PENDING") {
+                                if (status == "CONFIRMED" || status == "PENDING") {
                                     TextButton(onClick = { /* Handle cancellation network request */ }) {
                                         Text("Cancel", color = Color(0xFFF44336))
                                     }
@@ -151,10 +152,10 @@ fun BookingDetailScreen(
                                 DetailRow(label = "Check In Date", value = booking.checkInDate)
                                 DetailRow(label = "Check Out Date", value = booking.checkOutDate)
                                 DetailRow(label = "Vehicle Registration", value = booking.vehicleRegistration)
-                                DetailRow(label = "Group Size", value = "${booking.groupSize} person(s)")
+                                DetailRow(label = "Group Size", value = "${booking.groupSize ?: 0} person(s)")
                                 DetailRow(
                                     label = "Total Amount",
-                                    value = "KES ${booking.amount}",
+                                    value = "KES ${booking.amount ?: 0.0}",
                                     valueColor = brandGreen
                                 )
                             }
