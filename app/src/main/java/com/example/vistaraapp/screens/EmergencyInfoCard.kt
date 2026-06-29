@@ -20,7 +20,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
-import com.example.vistaraapp.ui.theme.PureWhite
+import androidx.compose.foundation.isSystemInDarkTheme
 import com.example.vistaraapp.ui.theme.VistaraTheme
 
 data class EmergencyType(val label: String, val icon: ImageVector)
@@ -64,7 +64,7 @@ fun EmergencyInfoCard(
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = PureWhite),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -105,7 +105,7 @@ fun EmergencyInfoCard(
             }
 
             Spacer(modifier = Modifier.height(12.dp))
-            HorizontalDivider(color = Color.LightGray)
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             Spacer(modifier = Modifier.height(12.dp))
 
             Button(
@@ -133,7 +133,7 @@ fun EmergencyInfoCard(
         ModalBottomSheet(
             onDismissRequest = { isBottomSheetOpen = false },
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-            containerColor = Color.White
+            containerColor = MaterialTheme.colorScheme.surface
         ) {
             Column(
                 modifier = Modifier
@@ -150,7 +150,7 @@ fun EmergencyInfoCard(
                 Text(
                     text = "Select a category to speed up field-ranger response.",
                     fontSize = 13.sp,
-                    color = Color.Gray,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(vertical = 4.dp)
                 )
 
@@ -173,16 +173,16 @@ fun EmergencyInfoCard(
                     shape = RoundedCornerShape(12.dp),
                     maxLines = 3,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.Black,
-                        unfocusedTextColor = Color.Black,
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
                         focusedLabelColor = Color(0xFFD32F2F),
-                        unfocusedLabelColor = Color.Gray,
-                        focusedPlaceholderColor = Color.Gray,
-                        unfocusedPlaceholderColor = Color.Gray,
+                        unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        focusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
                         focusedBorderColor = Color(0xFFD32F2F),
-                        unfocusedBorderColor = Color.LightGray,
-                        focusedContainerColor = Color.White,
-                        unfocusedContainerColor = Color.White,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                         cursorColor = Color(0xFFD32F2F)
                     )
                 )
@@ -252,12 +252,12 @@ fun SafetyTipsSection() {
     Text(
         text = "• Stay inside your vehicle at all times",
         fontSize = 11.sp,
-        color = Color.DarkGray
+        color = MaterialTheme.colorScheme.onSurfaceVariant
     )
     Text(
         text = "• Keep a safe distance from animals",
         fontSize = 11.sp,
-        color = Color.DarkGray
+        color = MaterialTheme.colorScheme.onSurfaceVariant
     )
 }
 
@@ -276,15 +276,20 @@ fun CategoryGrid(
             ) {
                 rowItems.forEach { item ->
                     val isSelected = selectedType == item.label
+                    val isDark = isSystemInDarkTheme()
                     OutlinedCard(
                         onClick = { onTypeSelect(item.label) },
                         shape = RoundedCornerShape(12.dp),
                         border = BorderStroke(
                             width = if (isSelected) 2.dp else 1.dp,
-                            color = if (isSelected) Color(0xFFD32F2F) else Color.LightGray
+                            color = if (isSelected) Color(0xFFD32F2F) else MaterialTheme.colorScheme.outlineVariant
                         ),
                         colors = CardDefaults.outlinedCardColors(
-                            containerColor = if (isSelected) Color(0xFFFFEBEE) else Color.Transparent
+                            containerColor = if (isSelected) {
+                                if (isDark) Color(0xFF3E1E22) else Color(0xFFFFEBEE)
+                            } else {
+                                Color.Transparent
+                            }
                         ),
                         modifier = Modifier.weight(1f)
                     ) {
@@ -296,14 +301,14 @@ fun CategoryGrid(
                             Icon(
                                 imageVector = item.icon,
                                 contentDescription = null,
-                                tint = if (isSelected) Color(0xFFD32F2F) else Color.Gray,
+                                tint = if (isSelected) Color(0xFFD32F2F) else MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(18.dp)
                             )
                             Text(
                                 text = item.label,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Medium,
-                                color = if (isSelected) Color(0xFFD32F2F) else Color.DarkGray
+                                color = if (isSelected) Color(0xFFD32F2F) else MaterialTheme.colorScheme.onSurface
                             )
                         }
                     }
@@ -339,8 +344,8 @@ fun ActionButtonsRow(
             colors = ButtonDefaults.buttonColors(
                 containerColor = Color(0xFFD32F2F),
                 contentColor = Color.White,
-                disabledContainerColor = Color(0xFFE0E0E0),
-                disabledContentColor = Color.Gray
+                disabledContainerColor = if (isSystemInDarkTheme()) Color(0xFF333333) else Color(0xFFE0E0E0),
+                disabledContentColor = if (isSystemInDarkTheme()) Color(0xFF666666) else Color.Gray
             )
         ) {
             Text("SUBMIT ALERT", fontWeight = FontWeight.Bold)
@@ -358,7 +363,7 @@ fun SuccessAlertDialog(
     if (!visible) return
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = PureWhite,
+        containerColor = MaterialTheme.colorScheme.surface,
         confirmButton = {
             Button(
                 onClick = onDismiss,
@@ -389,13 +394,13 @@ fun SuccessAlertDialog(
                     text = "Done",
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1F2937)
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
                     text = "Your emergency report has been submitted successfully.",
                     fontSize = 14.sp,
-                    color = Color.Gray,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
                 )
             }
@@ -427,10 +432,10 @@ fun EmergencyContactRow(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = Color.Gray,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(18.dp)
             )
-            Text(text = label, fontSize = 13.sp, color = Color.DarkGray, fontWeight = FontWeight.Medium)
+            Text(text = label, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Medium)
         }
         Text(text = number, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = textColor)
     }

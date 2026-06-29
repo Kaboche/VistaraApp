@@ -1,6 +1,7 @@
 package com.example.vistaraapp.screens
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -32,20 +33,26 @@ fun LoginScreen(
     val state by viewModel.state.collectAsState()
 
     val brandGreen = Color(0xFF029602)
-    val pureWhite = Color(0xFFFFFFFF)
-    val textLight = Color(0xFF999999) // Lighter grey for placeholder text
-    val lightGray = Color(0xFFF6F6F6) // Card background color
+    val pureWhite = MaterialTheme.colorScheme.surface
+    val textLight = MaterialTheme.colorScheme.onSurfaceVariant // Lighter grey for placeholder text
+    val lightGray = if (isSystemInDarkTheme()) Color(0xFF1E1E1E) else Color(0xFFF6F6F6) // Card background color
 
     var passwordVisible by remember { mutableStateOf(false) }
 
     LaunchedEffect(state.isLoginSuccess) {
         if (state.isLoginSuccess) {
-            onNavigateToDashboard(state.token ?: "")
+            val destination = when (state.role) {
+                "PARK_RANGER" -> "ranger_dashboard"
+                "VISITOR", "GUEST" -> "home_dashboard"
+                else -> "home_dashboard"
+            }
+
+            onNavigateToDashboard(destination)
         }
     }
 
     Scaffold(
-        containerColor = pureWhite
+        containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -68,7 +75,7 @@ fun LoginScreen(
             Text(
                 text = "Your Safety, Our Priority",
                 fontSize = 15.sp,
-                color = Color.Gray,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontWeight = FontWeight.Normal
             )
             
@@ -95,7 +102,7 @@ fun LoginScreen(
                         value = state.email,
                         onValueChange = { viewModel.onEvent(LoginEvent.SetEmail(it)) },
                         label = { Text(text = "Email") },
-                        placeholder = { Text(text = "Enter your Email", color = Color.LightGray) },
+                        placeholder = { Text(text = "Enter your Email", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                         enabled = !state.isLoading,
@@ -103,11 +110,11 @@ fun LoginScreen(
                         shape = RoundedCornerShape(12.dp),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = brandGreen,
-                            unfocusedBorderColor = Color.LightGray,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
                             focusedLabelColor = brandGreen,
-                            unfocusedLabelColor = Color.Gray,
-                            focusedTextColor = Color.Black,
-                            unfocusedTextColor = Color.Black,
+                            unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
                             cursorColor = brandGreen
                         )
                     )
@@ -119,7 +126,7 @@ fun LoginScreen(
                         value = state.password,
                         onValueChange = { viewModel.onEvent(LoginEvent.SetPassword(it)) },
                         label = { Text(text = "Password") },
-                        placeholder = { Text(text = "Password", color = Color.LightGray) },
+                        placeholder = { Text(text = "Password", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                         enabled = !state.isLoading,
@@ -128,17 +135,17 @@ fun LoginScreen(
                         trailingIcon = {
                             val icon = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
                             IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                                Icon(imageVector = icon, contentDescription = "Toggle visibility", tint = Color.Gray)
+                                Icon(imageVector = icon, contentDescription = "Toggle visibility", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         },
                         shape = RoundedCornerShape(12.dp),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = brandGreen,
-                            unfocusedBorderColor = Color.LightGray,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
                             focusedLabelColor = brandGreen,
-                            unfocusedLabelColor = Color.Gray,
-                            focusedTextColor = Color.Black,
-                            unfocusedTextColor = Color.Black,
+                            unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
                             cursorColor = brandGreen
                         )
                     )
@@ -186,7 +193,7 @@ fun LoginScreen(
                         if (state.isLoading) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(24.dp),
-                                color = pureWhite,
+                                color = Color.White,
                                 strokeWidth = 2.dp
                             )
                         } else {
@@ -194,7 +201,7 @@ fun LoginScreen(
                                 text = "LOGIN",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = pureWhite,
+                                color = Color.White,
                                 letterSpacing = 0.5.sp
                             )
                         }
@@ -213,7 +220,7 @@ fun LoginScreen(
                 Text(
                     text = "Don't have an account? ",
                     fontSize = 14.sp,
-                    color = Color.Gray
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
                     text = "Register",

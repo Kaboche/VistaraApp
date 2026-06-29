@@ -29,21 +29,21 @@ fun AnimalDetailScreen(
     modifier: Modifier = Modifier,
     navController: NavHostController
 ) {
-    // Use Coil's AsyncImage for efficient loading and automatic downsampling
+    // Coil's AsyncImage is for efficient loading and automatic downsampling
     // No manual bitmap handling is needed; AsyncImage will cache and resize appropriately
 
     Scaffold(
-        containerColor = Color.White,
-        // ==================== NEW TOP APP BAR (BACK BUTTON) ====================
+        containerColor = MaterialTheme.colorScheme.background,
+        //NEW TOP APP BAR (BACK BUTTON)
         topBar = {
             TopAppBar(
                 title = { Text(text = "Details", fontWeight = FontWeight.SemiBold) },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.White // Keeps it matching your background
+                    containerColor = MaterialTheme.colorScheme.background
                 ),
                 navigationIcon = {
                     IconButton(onClick = {
-                        // 🧠 This line drops the current screen and takes you back!
+                        // his line drops the current screen and takes you back!
                         navController.popBackStack()
                     }) {
                         Icon(
@@ -55,7 +55,6 @@ fun AnimalDetailScreen(
                 }
             )
         }
-        // =======================================================================
     ) { paddingValues ->
         Column(
             modifier = modifier
@@ -78,7 +77,8 @@ fun AnimalDetailScreen(
                 Text(
                     text = animal.name,
                     fontSize = 28.sp,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
 
                 Text(
@@ -94,21 +94,21 @@ fun AnimalDetailScreen(
                     text = animal.description,
                     fontSize = 15.sp,
                     lineHeight = 22.sp,
-                    color = Color.DarkGray
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Card(
                     colors = CardDefaults.cardColors(
-                        containerColor = Color(0xFFE8F5E9)
+                        containerColor = if (androidx.compose.foundation.isSystemInDarkTheme()) Color(0xFF1B3B2B) else Color(0xFFE8F5E9)
                     )
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
                             text = "Fun Fact",
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF212121)
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(

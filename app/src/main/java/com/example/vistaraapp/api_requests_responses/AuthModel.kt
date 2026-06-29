@@ -1,5 +1,5 @@
 package com.example.vistaraapp.api_requests_responses
-// ========== DATA MODELS ==========
+// DATA MODELS
 
 // Request model for registration
 data class RegisterRequest(
@@ -18,7 +18,7 @@ data class LoginRequest(
     val password: String
 )
 
-// ─── ADDED: FORGOT PASSWORD REQUEST MODEL ──────────────────────────────
+// FORGOT PASSWORD REQUEST MODEL
 data class ForgotPasswordRequest(
     val email: String
 )
@@ -27,9 +27,6 @@ data class ForgotPasswordResponse(
     val success: Boolean,
     val message: String? = null
 )
-
-// ────────────────────────────────────────────────────────────────────────
-
 // Response model for registration
 data class RegisterResponse(
     val success: Boolean,
@@ -46,11 +43,17 @@ data class LoginResponse(
     val token: String? = null,
     val fullName: String? = null,
     val email: String? = null,
-    val data: LoginData? = null // Handle API wrapper format
+    val data: LoginData? = null,
+    val role: String? = null
 ) {
     // Helper to get token whether it's at the root or nested in data
     fun getActualToken(): String? {
         return token ?: data?.token
+    }
+
+    // Helper to get role whether it's at the root or nested in data
+    fun getActualRole(): String? {
+        return role ?: data?.role
     }
 }
 
@@ -58,5 +61,6 @@ data class LoginData(
     val token: String? = null,
     val userId: Int? = null,
     val fullName: String? = null,
-    val email: String? = null
+    val email: String? = null,
+    val role: String? = null
 )

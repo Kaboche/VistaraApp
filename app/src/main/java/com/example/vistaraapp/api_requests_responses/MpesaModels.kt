@@ -1,4 +1,4 @@
-package com.example.vistaraapp.Api_requests_responses
+package com.example.vistaraapp.api_requests_responses
 
 import com.google.gson.annotations.SerializedName
 

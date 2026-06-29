@@ -1,4 +1,4 @@
-package com.example.vistaraapp.Api_requests_responses
+package com.example.vistaraapp.api_requests_responses
 
 // The request payload matching your JSON structure exactly
 data class BookingRequest(

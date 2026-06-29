@@ -1,8 +1,11 @@
 package com.example.vistaraapp.database
 
+import com.example.vistaraapp.data.SessionManager
+
 //this  file defines all the possible things the user can do with the contact/ profile data
 //It’s a list of commands that the user or the screen can send to the “brain” (ViewModel).
 sealed interface ContactEvent {
+    data class Logout(val sessionManager: SessionManager, val onLogoutComplete: () -> Unit) : ContactEvent
     data object SaveContact : ContactEvent
     data object HideDialog : ContactEvent
     data object ShowDialog : ContactEvent
@@ -11,7 +14,6 @@ sealed interface ContactEvent {
     data class SetFullName(val fullName: String) : ContactEvent
     data class SetEmail(val email: String) : ContactEvent
     data class SetPhoneNumber(val phoneNumber: String) : ContactEvent
-    data class SetPassword(val password: String) : ContactEvent
     data class SetIdNumber(val idNumber: String) : ContactEvent
     data class SetEmergencyNumber(val emergencyNumber: String) : ContactEvent
 

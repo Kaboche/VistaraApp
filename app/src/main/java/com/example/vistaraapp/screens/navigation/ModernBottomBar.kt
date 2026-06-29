@@ -19,10 +19,10 @@ fun ModernBottomBar(
     val brandGreen = Color(0xFF029602)
 
     NavigationBar(
-        containerColor = Color.White,
-        tonalElevation = 8.dp
+        containerColor = MaterialTheme.colorScheme.surface,
+        tonalElevation = 0.dp
     ) {
-        // ==================== 1. HOME TAB ====================
+        // 1. HOME TAB
         NavigationBarItem(
             selected = currentRoute == "home",
             onClick = { onItemSelected("home") },
@@ -39,13 +39,13 @@ fun ModernBottomBar(
             colors = NavigationBarItemDefaults.colors(
                 selectedIconColor = brandGreen,
                 selectedTextColor = brandGreen,
-                unselectedIconColor = Color.Gray,
-                unselectedTextColor = Color.Gray,
+                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 indicatorColor = Color.Transparent // Clean look, no dark capsule pill!
             )
         )
 
-        // ==================== 2. EXPLORE TAB ====================
+        //  2. EXPLORE TAB
         NavigationBarItem(
             selected = currentRoute == "wildlife",
             onClick = { onItemSelected("wildlife") },
@@ -62,13 +62,13 @@ fun ModernBottomBar(
             colors = NavigationBarItemDefaults.colors(
                 selectedIconColor = brandGreen,
                 selectedTextColor = brandGreen,
-                unselectedIconColor = Color.Gray,
-                unselectedTextColor = Color.Gray,
+                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 indicatorColor = Color.Transparent
             )
         )
 
-        // ==================== 3. BOOKINGS TAB ====================
+        // 3. BOOKINGS TAB
         NavigationBarItem(
             selected = currentRoute == "bookings",
             onClick = { onItemSelected("bookings") },
@@ -85,8 +85,8 @@ fun ModernBottomBar(
             colors = NavigationBarItemDefaults.colors(
                 selectedIconColor = brandGreen,
                 selectedTextColor = brandGreen,
-                unselectedIconColor = Color.Gray,
-                unselectedTextColor = Color.Gray,
+                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 indicatorColor = Color.Transparent
             )
         )
@@ -108,8 +108,8 @@ fun ModernBottomBar(
             colors = NavigationBarItemDefaults.colors(
                 selectedIconColor = brandGreen,
                 selectedTextColor = brandGreen,
-                unselectedIconColor = Color.Gray,
-                unselectedTextColor = Color.Gray,
+                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 indicatorColor = Color.Transparent
             )
         )

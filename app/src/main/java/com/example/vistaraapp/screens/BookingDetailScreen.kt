@@ -26,12 +26,13 @@ fun BookingDetailScreen(
     viewModel: BookingViewModel
 ) {
     val brandGreen = Color(0xFF029602)
-    val pureWhite = Color(0xFFFFFFFF)
+    val pureWhite = MaterialTheme.colorScheme.surface
 
     // Extract the live state directly from the shared ViewModel
     val uiState by viewModel.uiState
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
                 title = {
@@ -64,7 +65,7 @@ fun BookingDetailScreen(
             }
             is BookingUiState.Error -> {
                 Box(modifier = Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
-                    Text(text = state.message, color = Color.Red, fontSize = 14.sp)
+                    Text(text = state.message, color = MaterialTheme.colorScheme.error, fontSize = 14.sp)
                 }
             }
             is BookingUiState.Success -> {
@@ -79,7 +80,7 @@ fun BookingDetailScreen(
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text("❌", fontSize = 48.sp)
                             Spacer(modifier = Modifier.height(8.dp))
-                            Text("Booking Not Found", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                            Text("Booking Not Found", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                             Spacer(modifier = Modifier.height(16.dp))
                             Button(
                                 onClick = { navController.popBackStack() },
@@ -135,7 +136,7 @@ fun BookingDetailScreen(
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                             elevation = CardDefaults.cardElevation(2.dp)
                         ) {
                             Column(

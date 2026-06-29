@@ -4,6 +4,7 @@ import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -38,11 +39,12 @@ import com.example.vistaraapp.entities_dataclass.getWeatherDescription
 import com.example.vistaraapp.entities_dataclass.getWeatherEmoji
 import com.example.vistaraapp.ui.theme.VistaraTheme
 import com.example.vistaraapp.viewmodel.SosViewModel
+import com.example.vistaraapp.viewmodels.SessionViewModel
 import kotlinx.coroutines.delay
 import java.util.Calendar
 import kotlin.time.Duration.Companion.seconds
 
-// ========== DYNAMIC CONTENT HELPERS ==========
+// DYNAMIC CONTENT HELPERS
 fun getDynamicGreeting(): String {
     return when (Calendar.getInstance().get(Calendar.HOUR_OF_DAY)) {
         in 0..11 -> "Good morning"
@@ -65,6 +67,7 @@ fun HomeScreen(
     navController: NavController,
     weatherViewModel: WeatherViewModel,
     viewModel: BookingViewModel,
+    sessionViewModel: SessionViewModel,
     sosViewModel: SosViewModel,
     authToken: String
 ) {
@@ -72,6 +75,15 @@ fun HomeScreen(
     val context = LocalContext.current
     val sosStatus by viewModel.sosStatus
     val sosMessage = sosViewModel.sosMessage
+    val unreadCount by viewModel.unreadCount.collectAsState()
+
+    // Background pre-fetch engine: keeps notification items hot and responsive
+    LaunchedEffect(key1 = authToken) {
+        if (authToken.isNotEmpty() && authToken != "OFFLINE_SESSION") {
+            viewModel.fetchAllNotifications(authToken)
+            viewModel.fetchUnreadNotificationsCount(authToken)
+        }
+    }
 
     LaunchedEffect(sosStatus) {
         sosStatus?.let { statusMessage ->
@@ -89,6 +101,7 @@ fun HomeScreen(
     HomeScreenContent(
         navController = navController,
         weatherState = weatherState,
+        unreadCount = unreadCount,
         onRetryWeather = { weatherViewModel.fetchWeather() },
         onSendEmergencyReport = { emergencyType, details ->
             val mappedType = when (emergencyType.trim()) {
@@ -117,12 +130,13 @@ fun HomeScreen(
 fun HomeScreenContent(
     navController: NavController,
     weatherState: WeatherState,
+    unreadCount: Int,
     onRetryWeather: () -> Unit,
     onSendEmergencyReport: (type: String, details: String) -> Unit
 ) {
     val brandGreen = Color(0xFF029602)
-    val pureWhite = Color(0xFFFFFFFF)
-    val lightGray = Color(0xFFF5F7FA)
+    val pureWhite = MaterialTheme.colorScheme.surface
+    val lightGray = MaterialTheme.colorScheme.background
     val emergencyRed = Color(0xFFD32F2F)
 
     var showEmergencyOverlay by remember { mutableStateOf(false) }
@@ -145,11 +159,24 @@ fun HomeScreenContent(
                     },
                     actions = {
                         IconButton(onClick = { navController.navigate("notifications") }) {
-                            Icon(
-                                imageVector = Icons.Filled.Notifications,
-                                contentDescription = "View Alert Notifications",
-                                tint = brandGreen
-                            )
+                            BadgedBox(
+                                badge = {
+                                    if (unreadCount > 0) {
+                                        Badge(
+                                            containerColor = Color.Red,
+                                            contentColor = Color.White
+                                        ) {
+                                            Text(text = unreadCount.toString())
+                                        }
+                                    }
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Notifications,
+                                    contentDescription = "View Alert Notifications",
+                                    tint = brandGreen
+                                )
+                            }
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = pureWhite),
@@ -172,7 +199,7 @@ fun HomeScreenContent(
             FloatingActionButton(
                 onClick = { showEmergencyOverlay = true },
                 containerColor = emergencyRed,
-                contentColor = pureWhite,
+                contentColor = Color.White,
                 elevation = FloatingActionButtonDefaults.elevation(6.dp),
                 shape = RoundedCornerShape(20.dp),
             ) {
@@ -233,7 +260,7 @@ fun HomeScreenContent(
     }
 }
 
-//  1. THREE-LINE DYNAMIC HERO CARD
+// 1. THREE-LINE DYNAMIC HERO CARD
 @Composable
 fun HeroDashboardCard(weatherState: WeatherState) {
     val greeting = getDynamicGreeting()
@@ -251,7 +278,6 @@ fun HeroDashboardCard(weatherState: WeatherState) {
 
     LaunchedEffect(Unit) {
         while (true) {
-            // Upgraded: Converted long millisecond parameter to standard Duration overload
             delay(4.seconds)
             currentImageIndex = (currentImageIndex + 1) % heroImages.size
         }
@@ -377,7 +403,7 @@ fun StatCard(value: String, label: String, color: Color, modifier: Modifier = Mo
     Card(
         modifier = modifier.height(64.dp),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(2.dp)
     ) {
         Column(
@@ -387,12 +413,12 @@ fun StatCard(value: String, label: String, color: Color, modifier: Modifier = Mo
         ) {
             Text(value, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = color)
             Spacer(modifier = Modifier.height(2.dp))
-            Text(label, fontSize = 10.sp, color = Color.Gray, fontWeight = FontWeight.Medium)
+            Text(label, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Medium)
         }
     }
 }
 
-//  3. REAL-TIME WEATHER CARD
+// 3. REAL-TIME WEATHER CARD
 @Composable
 fun RealTimeWeatherCard(
     brandGreen: Color,
@@ -404,7 +430,7 @@ fun RealTimeWeatherCard(
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(2.dp)
     ) {
         Row(
@@ -417,7 +443,7 @@ fun RealTimeWeatherCard(
                 is WeatherState.Loading -> {
                     CircularProgressIndicator(modifier = Modifier.size(24.dp))
                     Spacer(Modifier.width(12.dp))
-                    Text("Loading weather...", fontSize = 13.sp, color = Color.Gray)
+                    Text("Loading weather...", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
 
                 is WeatherState.Success -> {
@@ -440,12 +466,12 @@ fun RealTimeWeatherCard(
                             text = "$currentTemp°C, $weatherDesc",
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color.Black
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
                             text = if (currentTemp in 20..28) "Perfect for a safari!" else "Plan your visit accordingly",
                             fontSize = 12.sp,
-                            color = Color.Gray
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -458,7 +484,7 @@ fun RealTimeWeatherCard(
                             text = "Weather Unavailable",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Medium,
-                            color = Color.Gray
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
                             text = "Tap to retry",
@@ -473,7 +499,7 @@ fun RealTimeWeatherCard(
     }
 }
 
-//  4. SAFARI DISCOVERY CARD
+// 4. SAFARI DISCOVERY CARD
 @Composable
 fun WildlifeDiscoveryCard(navController: NavController, brandGreen: Color) {
     Card(
@@ -481,7 +507,7 @@ fun WildlifeDiscoveryCard(navController: NavController, brandGreen: Color) {
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp),
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(3.dp)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
@@ -506,7 +532,7 @@ fun WildlifeDiscoveryCard(navController: NavController, brandGreen: Color) {
                 text = "Lions can hear a prey's roar from up to 8 kilometers away!",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.Black,
+                color = MaterialTheme.colorScheme.onSurface,
                 lineHeight = 22.sp
             )
 
@@ -515,7 +541,7 @@ fun WildlifeDiscoveryCard(navController: NavController, brandGreen: Color) {
             Text(
                 text = "Escape the concrete jungle. Over 50+ incredible wild animals are waiting to be discovered just minutes outside the city center. Perfect conditions predicted for today's drive.",
                 fontSize = 13.sp,
-                color = Color.Gray,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 lineHeight = 18.sp
             )
 
@@ -555,7 +581,7 @@ fun PicnicSiteCard() {
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -570,7 +596,7 @@ fun PicnicSiteCard() {
                 }
             }
             Spacer(Modifier.height(8.dp))
-            Text("Perfect spot for a picnic with family. Enjoy the stunning views of the savanna and wildlife.", fontSize = 13.sp, color = Color.Gray)
+            Text("Perfect spot for a picnic with family. Enjoy the stunning views of the savanna and wildlife.", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(12.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 InfoChip("2.5 km from Main Gate")
@@ -584,10 +610,10 @@ fun InfoChip(text: String) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
-            .background(Color(0xFFF3F4F6), shape = RoundedCornerShape(20.dp))
+            .background(if (isSystemInDarkTheme()) Color(0xFF2C2C2C) else Color(0xFFF3F4F6), shape = RoundedCornerShape(20.dp))
             .padding(horizontal = 8.dp, vertical = 4.dp)
     ) {
-        Text(text, fontSize = 10.sp, color = Color.Gray)
+        Text(text, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -601,6 +627,7 @@ fun HomeScreenPreview() {
         HomeScreenContent(
             navController = dummyNavController,
             weatherState = WeatherState.Loading,
+            unreadCount = 0,
             onRetryWeather = {},
             onSendEmergencyReport = { _, _ -> }
         )

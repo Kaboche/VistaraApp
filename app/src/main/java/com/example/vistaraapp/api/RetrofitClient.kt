@@ -1,7 +1,10 @@
 package com.example.vistaraapp.api
 
+import com.example.vistaraapp.utils.TokenManager
+import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
+import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
@@ -66,6 +69,31 @@ object RetrofitClient {
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(VistaraApi::class.java)
+    }
+
+    val sessionInstance: SessionApi by lazy {
+        Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(SessionApi::class.java)
+    }
+
+
+    class AuthInterceptor(private val tokenManager: TokenManager) : Interceptor {
+
+        override fun intercept(chain: Interceptor.Chain): okhttp3.Response {
+            val token = tokenManager.getToken()
+
+            val request = chain.request().newBuilder()
+
+            if (token != null) {
+                request.addHeader("Authorization", "Bearer $token")
+            }
+
+            return chain.proceed(request.build())
+        }
     }
 
 

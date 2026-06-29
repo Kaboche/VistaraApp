@@ -15,7 +15,22 @@ import java.io.IOException
 
 class AuthRepository(private val contactDao: ContactDao) {
 
-    //  1. USER REGISTRATION (ONLINE WITH LOCAL CACHING)
+    // Helper function to prevent raw HTML server crashes from leaking to the UI
+    private fun parseHttpError(e: HttpException): String {
+        val rawError = try {
+            e.response()?.errorBody()?.string() ?: e.message()
+        } catch (_: Exception) {
+            e.message()
+        }
+
+        return if (rawError.contains("<!DOCTYPE html>") || rawError.contains("<html>")) {
+            "Server gateway error (e.g., 502 Bad Gateway). Please ensure your local backend is running."
+        } else {
+            rawError
+        }
+    }
+
+    // 1. USER REGISTRATION (ONLINE WITH LOCAL CACHING)
     suspend fun registerUser(
         email: String,
         password: String,
@@ -43,16 +58,14 @@ class AuthRepository(private val contactDao: ContactDao) {
                 val response = RetrofitClient.instance.registerUser(request)
 
                 if (response.success) {
-                    // Cache the user's details locally in Room database upon successful network registration
                     val newUser = Contact(
-                        id = 1, // Force ID = 1 to overwrite any existing cached user profile safely
+                        id = 1,
                         fullName = fullName,
                         email = email.trim().lowercase(),
                         phoneNumber = sanitizedPhone,
                         idNumber = nationalId,
                         emergencyNumber = sanitizedEmergencyPhone,
-                        password = password,
-                        isCurrentUser = true
+                        isCurrentUser = false
                     )
                     contactDao.upsertContact(newUser)
                     RegisterResult.Success(response)
@@ -60,7 +73,7 @@ class AuthRepository(private val contactDao: ContactDao) {
                     RegisterResult.Error(response.message ?: "Registration failed")
                 }
             } catch (e: HttpException) {
-                RegisterResult.Error("Server error: ${e.code()} - ${e.message()}")
+                RegisterResult.Error("Server error (${e.code()}): ${parseHttpError(e)}")
             } catch (_: IOException) {
                 RegisterResult.Error("Network error: Please check your internet connection")
             } catch (e: Exception) {
@@ -69,39 +82,54 @@ class AuthRepository(private val contactDao: ContactDao) {
         }
     }
 
-    //  2. USER LOGIN (ONLINE WITH OFFLINE ROOM FALLBACK)
+    // 2. USER LOGIN (WITH ANTI-OVERWRITE MERGE & OFFLINE FALLBACK)
     suspend fun loginUser(email: String, password: String): LoginResult {
         return withContext(Dispatchers.IO) {
             try {
                 val request = LoginRequest(email = email, password = password)
-
-                // Try remote API login first
                 val response = RetrofitClient.instance.loginUser(request)
 
                 if (response.success) {
+                    val userDetails = response.data
+                    val name = userDetails?.fullName ?: response.fullName ?: ""
+                    val mail = userDetails?.email ?: response.email ?: email
+
+                    // Fetch existing profile data to keep registration numbers intact
+                    val existingProfile = contactDao.getContactById(1)
+                    val contact = Contact(
+                        id = 1,
+                        fullName = name,
+                        email = mail.trim().lowercase(),
+                        phoneNumber = existingProfile?.phoneNumber ?: "",
+                        idNumber = existingProfile?.idNumber ?: "",
+                        emergencyNumber = existingProfile?.emergencyNumber ?: "",
+                        isCurrentUser = true
+                    )
+                    contactDao.upsertContact(contact)
                     LoginResult.Success(response)
                 } else {
                     LoginResult.Error(response.message ?: "Invalid email or password")
                 }
             } catch (e: HttpException) {
-                when (e.code()) {
-                    401 -> LoginResult.Error("Invalid email or password")
-                    else -> LoginResult.Error("Server error: ${e.code()}")
+                if (e.code() == 401) {
+                    LoginResult.Error("Invalid email or password")
+                } else {
+                    LoginResult.Error("Server error (${e.code()}): ${parseHttpError(e)}")
                 }
             } catch (_: IOException) {
-                // Device is offline or server cannot be reached; check Room cache
-                val localContact = contactDao.getContactByEmail(email)
-
-
-                if (localContact != null && localContact.password == password) {
-                    val offlineResponse = LoginResponse(
-                        success = true,
-                        message = "Logged in successfully offline",
-                        token = "offline_session_token"
+                // Intercept network failure and safely handle local authentication fallback
+                val existingProfile = contactDao.getContactById(1)
+                if (existingProfile != null && existingProfile.email == email.trim().lowercase()) {
+                    LoginResult.Success(
+                        LoginResponse(
+                            success = true,
+                            message = "Logged in offline. Some features may be limited.",
+                            fullName = existingProfile.fullName,
+                            email = existingProfile.email
+                        )
                     )
-                    LoginResult.Success(offlineResponse)
                 } else {
-                    LoginResult.Error("Offline mode: No matching account records found on this device.")
+                    LoginResult.Error("Network error: Please check your internet connection")
                 }
             } catch (e: Exception) {
                 LoginResult.Error(e.message ?: "An unexpected login error occurred")
@@ -109,7 +137,7 @@ class AuthRepository(private val contactDao: ContactDao) {
         }
     }
 
-    //  3. FORGOT PASSWORD OPERATION
+    // 3. FORGOT PASSWORD OPERATION
     suspend fun forgotPassword(email: String): ForgotPasswordResult {
         return withContext(Dispatchers.IO) {
             try {
@@ -125,7 +153,7 @@ class AuthRepository(private val contactDao: ContactDao) {
                 if (e.code() == 404) {
                     ForgotPasswordResult.Error("No account found with this email address.")
                 } else {
-                    ForgotPasswordResult.Error("Server error occurred.")
+                    ForgotPasswordResult.Error("Server error (${e.code()}): ${parseHttpError(e)}")
                 }
             } catch (_: IOException) {
                 ForgotPasswordResult.Error("Network error: Please verify your internet connectivity.")
@@ -134,9 +162,17 @@ class AuthRepository(private val contactDao: ContactDao) {
             }
         }
     }
+
+    // 4. VIEWMODEL ACCESS GATEWAY
+    // Exposes the query helper function so the AuthViewModel can check user persistence on app launch
+    suspend fun getContactById(id: Int): Contact? = contactDao.getContactById(id)
+
+    suspend fun upsertContact(contact: Contact) {
+        contactDao.upsertContact(contact)
+    }
 }
 
-// RESULT SEALED CLASSES REQUIRED BY THE AUTHVIEWMODEL
+// RESULT SEALED CLASSES REQUIRED BY THE AUTH_VIEW_MODEL
 
 sealed class RegisterResult {
     data class Success(val response: RegisterResponse) : RegisterResult()

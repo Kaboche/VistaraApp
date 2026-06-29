@@ -2,6 +2,7 @@ package com.example.vistaraapp.screens
 
 import android.annotation.SuppressLint
 import android.widget.Toast
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -33,10 +34,10 @@ fun ForgotPasswordScreen(
     var email by remember { mutableStateOf("") }
     val context = LocalContext.current
     val brandGreen = Color(0xFF029602)
-    val pureWhite = Color(0xFFFFFFFF)
-    val textDark = Color(0xFF333333)
-    val textLight = Color(0xFF666666)
-    val lightGray = Color(0xFFF5F5F5)
+    val pureWhite = MaterialTheme.colorScheme.surface
+    val textDark = MaterialTheme.colorScheme.onSurface
+    val textLight = MaterialTheme.colorScheme.onSurfaceVariant
+    val lightGray = if (isSystemInDarkTheme()) Color(0xFF1E1E1E) else Color(0xFFF5F5F5)
 
     var otpCode by remember { mutableStateOf("") }
     var newpassword by remember { mutableStateOf("") }
@@ -96,7 +97,7 @@ fun ForgotPasswordScreen(
                 )
             )
         },
-        containerColor = pureWhite
+        containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -145,7 +146,7 @@ fun ForgotPasswordScreen(
                                 value = email,
                                 onValueChange = { email = it },
                                 label = { Text(text = "Enter email address", color = textLight) },
-                                placeholder = { Text(text = "bwire@example.com", color = Color.LightGray) },
+                                placeholder = { Text(text = "bwire@example.com", color = textLight.copy(alpha = 0.6f)) },
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth(),
                                 enabled = resetState !is ForgotPasswordUiState.Loading,
@@ -153,7 +154,7 @@ fun ForgotPasswordScreen(
                                 shape = RoundedCornerShape(12.dp),
                                 colors = OutlinedTextFieldDefaults.colors(
                                     focusedBorderColor = brandGreen,
-                                    unfocusedBorderColor = Color.LightGray,
+                                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
                                     focusedLabelColor = brandGreen,
                                     unfocusedLabelColor = textLight,
                                     focusedTextColor = textDark,
@@ -184,7 +185,7 @@ fun ForgotPasswordScreen(
                                 value = otpCode,
                                 onValueChange = { otpCode = it },
                                 label = { Text(text = "Enter OTP", color = textLight) },
-                                placeholder = { Text(text = "6-digit code", color = Color.LightGray) },
+                                placeholder = { Text(text = "6-digit code", color = textLight.copy(alpha = 0.6f)) },
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth(),
                                 enabled = resetState !is ForgotPasswordUiState.Loading,
@@ -192,7 +193,7 @@ fun ForgotPasswordScreen(
                                 shape = RoundedCornerShape(12.dp),
                                 colors = OutlinedTextFieldDefaults.colors(
                                     focusedBorderColor = brandGreen,
-                                    unfocusedBorderColor = Color.LightGray,
+                                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
                                     focusedLabelColor = brandGreen,
                                     unfocusedLabelColor = textLight,
                                     focusedTextColor = textDark,
@@ -231,14 +232,19 @@ fun ForgotPasswordScreen(
                                 trailingIcon = {
                                     val icon = if (newPasswordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
                                     IconButton(onClick = { newPasswordVisible = !newPasswordVisible }) {
-                                        Icon(imageVector = icon, contentDescription = "Toggle visibility")
+                                        Icon(imageVector = icon, contentDescription = "Toggle visibility", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
                                 },
                                 shape = RoundedCornerShape(12.dp),
-                                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = brandGreen,
-                                    unfocusedBorderColor = Color.Black,
-                                    focusedLabelColor =Color.Black,
-                                    cursorColor = brandGreen)
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = brandGreen,
+                                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                                    focusedLabelColor = brandGreen,
+                                    unfocusedLabelColor = textLight,
+                                    focusedTextColor = textDark,
+                                    unfocusedTextColor = textDark,
+                                    cursorColor = brandGreen
+                                )
                             )
 
                             Spacer(modifier = Modifier.height(16.dp))
@@ -255,11 +261,19 @@ fun ForgotPasswordScreen(
                                 trailingIcon = {
                                     val icon = if (confirmPasswordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
                                     IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
-                                        Icon(imageVector = icon, contentDescription = "Toggle visibility")
+                                        Icon(imageVector = icon, contentDescription = "Toggle visibility", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
                                 },
                                 shape = RoundedCornerShape(12.dp),
-                                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = brandGreen, unfocusedBorderColor = Color.LightGray, focusedLabelColor = brandGreen, cursorColor = brandGreen)
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = brandGreen,
+                                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                                    focusedLabelColor = brandGreen,
+                                    unfocusedLabelColor = textLight,
+                                    focusedTextColor = textDark,
+                                    unfocusedTextColor = textDark,
+                                    cursorColor = brandGreen
+                                )
                             )
                         }
                     }
@@ -321,7 +335,7 @@ fun ForgotPasswordScreen(
                 if (resetState is ForgotPasswordUiState.Loading) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(24.dp),
-                        color = pureWhite,
+                        color = Color.White,
                         strokeWidth = 2.dp
                     )
                 } else {
@@ -334,7 +348,7 @@ fun ForgotPasswordScreen(
                         },
                         fontSize = 16.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = pureWhite,
+                        color = Color.White,
                         letterSpacing = 0.5.sp
                     )
                 }

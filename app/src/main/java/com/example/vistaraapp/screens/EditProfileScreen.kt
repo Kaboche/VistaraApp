@@ -1,5 +1,6 @@
 package com.example.vistaraapp.screens
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -28,8 +29,8 @@ fun EditProfileScreen(
     onSaveProfileApi: (fullName: String, phone: String, email: String, emergencyPhone: String) -> Unit
 ) {
     val brandGreen = Color(0xFF029602)
-    val pureWhite = Color(0xFFFFFFFF)
-    val lightGray = Color(0xFFF6F6F6)
+    val pureWhite = MaterialTheme.colorScheme.surface
+    val lightGray = if (isSystemInDarkTheme()) Color(0xFF1E1E1E) else Color(0xFFF6F6F6)
 
     Scaffold(
         topBar = {
@@ -54,7 +55,7 @@ fun EditProfileScreen(
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = pureWhite)
             )
         },
-        containerColor = pureWhite
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -89,17 +90,17 @@ fun EditProfileScreen(
                         value = state.fullName,
                         onValueChange = { onEvent(ContactEvent.SetFullName(it)) },
                         label = { Text("Full Name") },
-                        placeholder = { Text("Enter your Full Name", color = Color.LightGray) },
+                        placeholder = { Text("Enter your Full Name", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = brandGreen,
-                            unfocusedBorderColor = Color.LightGray,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
                             focusedLabelColor = brandGreen,
-                            unfocusedLabelColor = Color.Gray,
-                            focusedTextColor = Color.Black,
-                            unfocusedTextColor = Color.Black,
+                            unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
                             cursorColor = brandGreen
                         )
                     )
@@ -109,17 +110,17 @@ fun EditProfileScreen(
                         value = state.phoneNumber,
                         onValueChange = { onEvent(ContactEvent.SetPhoneNumber(it)) },
                         label = { Text("Phone Number") },
-                        placeholder = { Text("Enter your Phone Number", color = Color.LightGray) },
+                        placeholder = { Text("Enter your Phone Number", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = brandGreen,
-                            unfocusedBorderColor = Color.LightGray,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
                             focusedLabelColor = brandGreen,
-                            unfocusedLabelColor = Color.Gray,
-                            focusedTextColor = Color.Black,
-                            unfocusedTextColor = Color.Black,
+                            unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
                             cursorColor = brandGreen
                         )
                     )
@@ -129,17 +130,17 @@ fun EditProfileScreen(
                         value = state.emergencyNumber,
                         onValueChange = { onEvent(ContactEvent.SetEmergencyNumber(it)) },
                         label = { Text("Emergency Contact No") },
-                        placeholder = { Text("Enter Emergency Contact No", color = Color.LightGray) },
+                        placeholder = { Text("Enter Emergency Contact No", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = brandGreen,
-                            unfocusedBorderColor = Color.LightGray,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
                             focusedLabelColor = brandGreen,
-                            unfocusedLabelColor = Color.Gray,
-                            focusedTextColor = Color.Black,
-                            unfocusedTextColor = Color.Black,
+                            unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
                             cursorColor = brandGreen
                         )
                     )
@@ -175,7 +176,7 @@ fun EditProfileScreen(
                             text = "SAVE PROFILE DETAILS",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
-                            color = pureWhite,
+                            color = Color.White,
                             letterSpacing = 0.5.sp
                         )
                     }

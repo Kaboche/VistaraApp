@@ -13,7 +13,6 @@ data class NationalPark(
     val category: ParkCategory
 )
 
-// Updated to focus on Nairobi National Park only
 val allParks = listOf(
     NationalPark(
         id = 1,
@@ -23,10 +22,3 @@ val allParks = listOf(
         category = ParkCategory.GAME_PARK
     )
 )
-
-// Helper function to get image resource (optional - if you have images)
-fun getParkImage(parkId: Int): Int {
-    // Return your image resource if you have one
-    // For example: return R.drawable.nairobi_park
-    return 0  // Return 0 for no image (will use placeholder)
-}

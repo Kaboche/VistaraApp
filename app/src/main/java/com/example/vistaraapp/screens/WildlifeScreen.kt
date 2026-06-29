@@ -28,7 +28,7 @@ import com.example.vistaraapp.entities_dataclass.uniqueAnimals
 @Composable
 fun WildlifeScreen(navController: NavController) {
     val brandGreen = Color(0xFF029602)
-    val lightGray = Color(0xFFF8F9FA)
+    val lightGray = MaterialTheme.colorScheme.background
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -97,7 +97,7 @@ fun WildlifeCard(
             .height(220.dp),
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(4.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         onClick = onClick
     ) {
         Column(
@@ -124,12 +124,12 @@ fun WildlifeCard(
                     text = animal.name,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.Black
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = animal.description.take(60) + if (animal.description.length > 60) "..." else "",
                     fontSize = 11.sp,
-                    color = Color.Gray,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )

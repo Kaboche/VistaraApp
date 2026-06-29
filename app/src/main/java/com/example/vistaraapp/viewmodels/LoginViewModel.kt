@@ -38,7 +38,6 @@ class LoginViewModel(
     }
 
     private fun performLogin() {
-
         val email = _state.value.email.trim().lowercase()
         val password = _state.value.password.trim()
 
@@ -54,32 +53,25 @@ class LoginViewModel(
         }
 
         viewModelScope.launch {
-
             when (val result = authRepository.loginUser(email, password)) {
-
                 is LoginResult.Success -> {
+                    // Fallback: If network is down, repository sets result.response.success to true
+                    // but getActualToken() might be null. We use a fallback if it's missing.
+                    val token = result.response.getActualToken() ?: "OFFLINE_SESSION"
+                    val userRole = result.response.getActualRole()
 
-                    val token = result.response.getActualToken()
+                    sessionManager.saveToken(token)
+                    if (userRole != null) {
+                        sessionManager.saveRole(userRole)
+                    }
 
-                    if (token != null) {
-
-                        sessionManager.saveToken(token)
-
-                        _state.update {
-                            it.copy(
-                                isLoading = false,
-                                isLoginSuccess = true,
-                                token = token
-                            )
-                        }
-
-                    } else {
-                        _state.update {
-                            it.copy(
-                                isLoading = false,
-                                errorMessage = "Token missing from response"
-                            )
-                        }
+                    _state.update {
+                        it.copy(
+                            isLoading = false,
+                            isLoginSuccess = true,
+                            token = token,
+                            role = userRole
+                        )
                     }
                 }
 

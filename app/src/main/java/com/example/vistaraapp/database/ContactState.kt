@@ -8,7 +8,6 @@ data class ContactState(
     val fullName: String = "",
     val email: String = "",
     val phoneNumber: String = "",
-    val password: String = "",
     val idNumber: String = "",
     val emergencyNumber: String = "",
     val isAddingContact: Boolean = false, // Useful for showing/hiding an input dialog

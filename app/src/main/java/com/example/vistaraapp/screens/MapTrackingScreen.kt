@@ -36,8 +36,8 @@ fun MapTrackingScreen(navController: NavController) {
 
     // Brand colors
     val brandGreen = Color(0xFF029602)
-    val pureWhite = Color(0xFFFFFFFF)
-    val darkText = Color(0xFF333333)
+    val pureWhite = MaterialTheme.colorScheme.surface
+    val darkText = MaterialTheme.colorScheme.onSurface
 
     // Permission state
     var hasLocationPermission by remember {
@@ -119,7 +119,7 @@ fun MapTrackingScreen(navController: NavController) {
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = pureWhite)
             )
         },
-        containerColor = Color(0xFFF5F5F5)
+        containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
             when {
@@ -157,7 +157,7 @@ fun MapTrackingScreen(navController: NavController) {
                         )
                         Text(
                             text = "Make sure GPS is enabled",
-                            color = Color.Gray,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 12.sp
                         )
                     }
@@ -205,7 +205,7 @@ fun MapTrackingScreen(navController: NavController) {
                                 ) {
                                     Text(
                                         text = "GRANT PERMISSION",
-                                        color = pureWhite,
+                                        color = Color.White,
                                         fontWeight = FontWeight.Bold
                                     )
                                 }
@@ -214,7 +214,7 @@ fun MapTrackingScreen(navController: NavController) {
                                     Text(
                                         text = "Please enable location permission in Settings to use this feature.",
                                         fontSize = 12.sp,
-                                        color = Color.Red
+                                        color = MaterialTheme.colorScheme.error
                                     )
                                 }
                             }
@@ -230,12 +230,12 @@ fun MapTrackingScreen(navController: NavController) {
                     .align(Alignment.BottomEnd)
                     .padding(16.dp),
                 containerColor = Color(0xFFD32F2F),
-                contentColor = pureWhite
+                contentColor = Color.White
             ) {
                 Text(
                     text = "STOP",
                     fontSize = 14.sp,
-                    color = pureWhite,
+                    color = Color.White,
                     fontWeight = FontWeight.Bold
                 )
             }

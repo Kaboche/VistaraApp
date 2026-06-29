@@ -12,12 +12,15 @@ import androidx.navigation.compose.composable
 import com.example.vistaraapp.api.RetrofitClient
 import com.example.vistaraapp.ProfileNetworkRequest
 import com.example.vistaraapp.data.SessionManager
+import com.example.vistaraapp.utils.TokenManager
 import com.example.vistaraapp.database.*
 import com.example.vistaraapp.entities_dataclass.uniqueAnimals
 import com.example.vistaraapp.repositories.*
 import com.example.vistaraapp.screens.*
 import com.example.vistaraapp.viewmodels.*
 import com.example.vistaraapp.viewmodel.SosViewModel
+import com.example.vistaraapp.RangerDashboard
+import com.example.vistaraapp.RangerProfileViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -29,6 +32,7 @@ fun AppNavigation(
     bookingViewModel: BookingViewModel,
     contactState: ContactState,
     contactDao: ContactDao,
+    sessionViewModel: SessionViewModel,
     sessionToken: String,
     onTokenUpdated: (String) -> Unit,
     onLoginSuccess: () -> Unit,
@@ -42,20 +46,58 @@ fun AppNavigation(
     val currentContactState = rememberUpdatedState(contactState)
     val coroutineScope = rememberCoroutineScope()
 
+
+    // AUTOMATIC SESSION CHECK AT STARTUP (AUTO-LOGIN)
+    LaunchedEffect(Unit) {
+        // 1. Look up if an active profile row exists in the local Room database (ID = 1)
+        val activeProfile = withContext(Dispatchers.IO) {
+            contactDao.getContactById(1)
+        }
+
+        // 2. If an active session exists on this device, proceed
+        if (activeProfile != null && activeProfile.isCurrentUser) {
+
+            // 3. Read the real saved token directly from your DataStore suspension method
+            val savedToken = sessionManager.getToken() ?: ""
+
+            if (savedToken.isNotEmpty() && savedToken != "OFFLINE_SESSION") {
+                // Pass the real token back up to your global app state wrapper
+                onTokenUpdated(savedToken)
+                onLoginSuccess()
+
+                // Read user role and route to the correct dashboard
+                val savedRole = sessionManager.getRole() ?: ""
+                val destination = when (savedRole) {
+                    "PARK_RANGER" -> "ranger_dashboard"
+                    else -> "home"
+                }
+
+                // 4. Jump past the auth entry screens cleanly
+                navController.navigate(destination) {
+                    popUpTo("login") { inclusive = true } // Clear the backstack history
+                }
+            } else {
+                // Clear active session flags to force manual login
+                withContext(Dispatchers.IO) {
+                    contactDao.upsertContact(activeProfile.copy(isCurrentUser = false))
+                }
+                TokenManager.clearToken()
+            }
+        }
+    }
+
     NavHost(
         navController = navController,
         startDestination = "login",
         modifier = modifier
     ) {
 
-        // LOGIN
+        // LOGIN SCREEN
         composable("login") {
-
             val loginViewModel: LoginViewModel = viewModel(
                 factory = viewModelFactory {
                     initializer {
                         val repo = AuthRepository(contactDao)
-
                         LoginViewModel(
                             authRepository = repo,
                             sessionManager = sessionManager
@@ -66,11 +108,13 @@ fun AppNavigation(
 
             LoginScreen(
                 viewModel = loginViewModel,
-                onNavigateToDashboard = { token ->
+                onNavigateToDashboard = { destination ->
+                    // Read the actual auth token from the ViewModel state
+                    val token = loginViewModel.state.value.token ?: ""
                     onTokenUpdated(token)
                     onLoginSuccess()
 
-                    navController.navigate("home") {
+                    navController.navigate(destination) {
                         popUpTo("login") { inclusive = true }
                     }
                 },
@@ -83,9 +127,8 @@ fun AppNavigation(
             )
         }
 
-        // REGISTER
+        // REGISTRATION SCREEN
         composable("register") {
-
             val authViewModel: AuthViewModel = viewModel(
                 factory = viewModelFactory {
                     initializer {
@@ -101,9 +144,8 @@ fun AppNavigation(
             )
         }
 
-        // FORGOT PASSWORD
+        // FORGOT PASSWORD SCREEN
         composable("forgot_password") {
-
             val authViewModel: AuthViewModel = viewModel(
                 factory = viewModelFactory {
                     initializer {
@@ -118,7 +160,7 @@ fun AppNavigation(
             )
         }
 
-        // HOME
+        // HOME MAIN DASHBOARD (Tourist / Visitor)
         composable("home") {
             val weatherViewModel: WeatherViewModel = viewModel()
             val sosViewModel: SosViewModel = viewModel()
@@ -126,17 +168,48 @@ fun AppNavigation(
                 navController = navController,
                 weatherViewModel = weatherViewModel,
                 viewModel = bookingViewModel,
+                sessionViewModel = sessionViewModel,
                 sosViewModel = sosViewModel,
                 authToken = tokenState.value
             )
         }
 
-        // WILDLIFE
+        // Also register "home_dashboard" as an alias so LoginScreen's role mapping works
+        composable("home_dashboard") {
+            val weatherViewModel: WeatherViewModel = viewModel()
+            val sosViewModel: SosViewModel = viewModel()
+            HomeScreen(
+                navController = navController,
+                weatherViewModel = weatherViewModel,
+                viewModel = bookingViewModel,
+                sessionViewModel = sessionViewModel,
+                sosViewModel = sosViewModel,
+                authToken = tokenState.value
+            )
+        }
+
+        // RANGER DASHBOARD
+        composable("ranger_dashboard") {
+            RangerDashboard(
+                onLogoutSuccess = {
+                    onTokenUpdated("")
+                    onLoginSuccess() // Triggers state refresh or hides bottom bars if appropriate
+                    // Redirect to login screen and clear backstack
+                    navController.navigate("login") {
+                        popUpTo(navController.graph.startDestinationId) {
+                            inclusive = true
+                        }
+                    }
+                }
+            )
+        }
+
+        // WILDLIFE FEED
         composable("wildlife") {
             WildlifeScreen(navController)
         }
 
-        // BOOKINGS
+        // SAFARI BOOKINGS MANAGEMENT
         composable("bookings") {
             BookingsScreen(
                 navController = navController,
@@ -145,9 +218,8 @@ fun AppNavigation(
             )
         }
 
-        // PROFILE
+        // USER PROFILE CARD
         composable("profile") {
-
             ProfileScreen(
                 navController = navController,
                 state = currentContactState.value,
@@ -156,18 +228,15 @@ fun AppNavigation(
             )
         }
 
-        // EDIT PROFILE
+        // EDIT DETAILS FORM
         composable("edit_profile") {
-
             EditProfileScreen(
                 navController = navController,
                 state = currentContactState.value,
                 onEvent = contactViewModel::onEvent,
                 onSaveProfileApi = { fullName, phone, _, emergencyPhone ->
-
                     coroutineScope.launch(Dispatchers.IO) {
                         try {
-
                             val requestPayload = ProfileNetworkRequest(
                                 fullName = fullName,
                                 phoneNumber = phone.replace(Regex("[^0-9]"), ""),
@@ -176,8 +245,10 @@ fun AppNavigation(
                                 nationalId = currentContactState.value.idNumber
                             )
 
+                            val token = tokenState.value
+                            val bearerToken = if (token.startsWith("Bearer ")) token else "Bearer $token"
                             val response = RetrofitClient.profileInstance.saveProfileDetails(
-                                bearerToken = "Bearer ${tokenState.value}",
+                                bearerToken = bearerToken,
                                 profileData = requestPayload
                             )
 
@@ -186,7 +257,6 @@ fun AppNavigation(
                                     navController.popBackStack()
                                 }
                             }
-
                         } catch (e: Exception) {
                             e.printStackTrace()
                         }
@@ -195,9 +265,8 @@ fun AppNavigation(
             )
         }
 
-        // ANIMAL DETAILS
+        // ANIMAL SPECIFIC DETAILS
         composable("animal/{animalId}") { backStackEntry ->
-
             val animalId = backStackEntry.arguments
                 ?.getString("animalId")
                 ?.toIntOrNull() ?: 1
@@ -210,7 +279,7 @@ fun AppNavigation(
             )
         }
 
-        // BOOKING FORM
+        // BOOKING ENTRY CREATION
         composable("booking/{parkId}") { backStackEntry ->
             val parkId = backStackEntry.arguments
                 ?.getString("parkId")
@@ -223,14 +292,83 @@ fun AppNavigation(
             )
         }
 
-        // RESET PASSWORD
+        // RESET ACCOUNT CREDENTIALS SCREEN
         composable("reset_password") {
             ResetPasswordScreen(navController = navController)
         }
 
-        // EXTRA SCREENS
-        composable("check_in") { CheckInScreen(navController) }
+        // EXTRA APP UTILITY SCREENS
+        composable("check_in") {
+            CheckInScreen(
+                navController = navController,
+                viewModel = sessionViewModel,
+                authToken = tokenState.value
+            )
+        }
         composable("map_tracking") { MapTrackingScreen(navController) }
-        composable("notifications") { NotificationScreen(navController) }
+
+        // ALL NOTIFICATIONS FEED
+        composable("notifications") {
+            NotificationScreen(
+                navController=navController,
+                viewModel = bookingViewModel,
+                authToken = tokenState.value //It is a variable that stores the user's authentication token.
+            )
+        }
+
+        // BOOKING NOTIFICATIONS LIST SCREEN
+        composable("booking_notifications_list") {
+            BookingNotificationsListScreen(
+                navController = navController,
+                viewModel = bookingViewModel,
+                authToken = tokenState.value
+            )
+        }
+
+        // BROADCAST NOTIFICATIONS LIST SCREEN
+        composable("broadcast_notifications_list") {
+            BroadcastNotificationsListScreen(
+                navController = navController,
+                viewModel = bookingViewModel,
+                authToken = tokenState.value
+            )
+        }
+
+        // NOTIFICATION DETAILS
+        composable("notification_detail/{notificationId}") { backStackEntry ->
+            val notificationId = backStackEntry.arguments?.getString("notificationId") ?: ""
+            NotificationDetailScreen(
+                navController = navController,
+                notificationId = notificationId,
+                viewModel = bookingViewModel,
+                authToken = tokenState.value
+            )
+        }
+
+        composable("ranger_profile") {
+            val rangerViewModel: RangerProfileViewModel = viewModel(
+                factory = viewModelFactory {
+                    initializer {
+                        RangerProfileViewModel(
+                            authRepository = AuthRepository(contactDao),
+                            sessionManager = sessionManager
+                        )
+                    }
+                }
+            )
+            RangerProfileScreen(
+                viewModel = rangerViewModel,
+                onLogoutSuccess = {
+                    onTokenUpdated("")
+                    onLoginSuccess() // Triggers state refresh or hides bottom bars if appropriate
+                    // Redirect to login screen and clear backstack
+                    navController.navigate("login") {
+                        popUpTo(navController.graph.startDestinationId) {
+                            inclusive = true
+                        }
+                    }
+                }
+            )
+        }
     }
 }

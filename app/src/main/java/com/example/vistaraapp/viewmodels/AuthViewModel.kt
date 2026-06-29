@@ -101,10 +101,19 @@ class AuthViewModel(
     fun resetForgotPasswordState() {
         _forgotPasswordState.value = ForgotPasswordUiState.Idle
     }
+
+    fun checkUserSession(onSessionResult: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            // Query  for the  repository for our hardcoded current user row (ID = 1)
+            val profile = repository.getContactById(1)
+
+            // Return true if a cached user profile exists and is marked active
+            onSessionResult(profile != null && profile.isCurrentUser)
+        }
+    }
 }
 
-// ─── UI STATES ──────────────────────────────────────────────────────────────
-
+// UI STATES
 sealed class RegisterUiState {
     data object Idle : RegisterUiState()
     data object Loading : RegisterUiState()

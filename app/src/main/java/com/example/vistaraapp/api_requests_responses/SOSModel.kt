@@ -5,6 +5,7 @@ data class SosRequest(
         val latitude: Double,
         val longitude: Double,
         val alertType: String,
+        val sessionId:  Int,
         val message: String = "Emergency SOS Triggered from Mobile App"
 )
 

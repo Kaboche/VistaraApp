@@ -2,6 +2,7 @@ package com.example.vistaraapp.screens
 
 import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -25,7 +26,6 @@ import com.example.vistaraapp.database.ContactEvent
 import com.example.vistaraapp.database.ContactState
 import com.example.vistaraapp.data.SessionManager
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -37,9 +37,9 @@ fun ProfileScreen(
     authToken: String
 ) {
     val brandGreen = Color(0xFF029602)
-    val pureWhite = Color(0xFFFFFFFF)
-    val lightGrayLabel = Color(0x99000000)
-    val dividerColor=Color(0xFFE0E0E0)
+    val pureWhite = MaterialTheme.colorScheme.surface
+    val lightGrayLabel = MaterialTheme.colorScheme.onSurfaceVariant
+    val dividerColor = MaterialTheme.colorScheme.outlineVariant
     val context = LocalContext.current
 
     val coroutineScope = rememberCoroutineScope()
@@ -54,7 +54,8 @@ fun ProfileScreen(
                 isSyncing = true
 
                 val response = withContext(Dispatchers.IO) {
-                    RetrofitClient.profileInstance.getProfileDetails("Bearer $authToken")
+                    val bearerToken = if (authToken.startsWith("Bearer ")) authToken else "Bearer $authToken"
+                    RetrofitClient.profileInstance.getProfileDetails(bearerToken)
                 }
 
                 if (response.isSuccessful) {
@@ -101,7 +102,7 @@ fun ProfileScreen(
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = pureWhite)
             )
         },
-        containerColor = pureWhite
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
 
         Column(
@@ -119,7 +120,7 @@ fun ProfileScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             // Avatar
             Box(
@@ -135,7 +136,7 @@ fun ProfileScreen(
                     Icon(
                         Icons.Default.Person,
                         contentDescription = null,
-                        tint = pureWhite,
+                        tint = Color.White,
                         modifier = Modifier.size(60.dp)
                     )
                 }
@@ -165,11 +166,6 @@ fun ProfileScreen(
                 color = brandGreen
             )
 
-            Text(
-                text = "Member since 2025",
-                fontSize = 12.sp,
-                color = Color.Gray
-            )
 
             Spacer(modifier = Modifier.height(20.dp))
 
@@ -181,7 +177,7 @@ fun ProfileScreen(
                 shape = RoundedCornerShape(20.dp),
                 elevation = CardDefaults.cardElevation(4.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = Color(0xFFF5F5F5)
+                    containerColor = if (isSystemInDarkTheme()) Color(0xFF1E1E1E) else Color(0xFFF5F5F5)
                 )
             ) {
                 Column(modifier = Modifier.padding(12.dp)) {
@@ -212,13 +208,17 @@ fun ProfileScreen(
             // LOGOUT BUTTON
             Button(
                 onClick = {
-                    coroutineScope.launch {
-                        sessionManager.clearSession()
-                        Toast.makeText(context, "Logged out", Toast.LENGTH_SHORT).show()
-                        navController.navigate("login") {
-                            popUpTo(0)
-                        }
-                    }
+                    onEvent(
+                        ContactEvent.Logout(
+                            sessionManager = sessionManager,
+                            onLogoutComplete = {
+                                Toast.makeText(context, "Logged out", Toast.LENGTH_SHORT).show()
+                                navController.navigate("login") {
+                                    popUpTo(0) { inclusive = true }
+                                }
+                            }
+                        )
+                    )
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F)),
                 modifier = Modifier
@@ -226,7 +226,7 @@ fun ProfileScreen(
                     .padding(horizontal = 20.dp)
                     .height(48.dp)
             ) {
-                Text("Logout", color = pureWhite, fontWeight = FontWeight.Bold)
+                Text("Logout", color = Color.White, fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -242,7 +242,7 @@ fun ProfileRowItem(label: String, value: String, labelColor: Color) {
     ) {
         Text(label, color = labelColor)
         Text(value, fontWeight = FontWeight.Bold,
-                color = Color(0xFF333333)
+                color = MaterialTheme.colorScheme.onSurface
         )
 
     }

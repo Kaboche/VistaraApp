@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.vistaraapp.api.BookingRequest
 import com.example.vistaraapp.api.MpesaPushRequest
 import com.example.vistaraapp.api.RetrofitClient
+import com.example.vistaraapp.data.SessionManager
 import com.example.vistaraapp.utils.TokenManager
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -35,7 +36,6 @@ class ContactViewModel(
                 SortType.PHONE_NUMBER -> dao.getContactsOrderedByPhoneNumber()
                 SortType.ID_NUMBER -> dao.getContactsOrderedByIdNumber()
                 SortType.EMERGENCY_NUMBER -> dao.getContactsOrderedByEmergencyNumber()
-                SortType.PASSWORD -> dao.getContactsOrderedByFullName()
             }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -65,7 +65,6 @@ class ContactViewModel(
                             fullName = profile.fullName,
                             email = profile.email,
                             phoneNumber = profile.phoneNumber,
-                            password = profile.password,
                             idNumber = profile.idNumber,
                             emergencyNumber = profile.emergencyNumber
                         )
@@ -100,9 +99,6 @@ class ContactViewModel(
             is ContactEvent.SetPhoneNumber -> {
                 _state.update { it.copy(phoneNumber = event.phoneNumber) }
             }
-            is ContactEvent.SetPassword -> {
-                _state.update { it.copy(password = event.password) }
-            }
             is ContactEvent.SetIdNumber -> {
                 _state.update { it.copy(idNumber = event.idNumber) }
             }
@@ -113,7 +109,6 @@ class ContactViewModel(
                 val fullName = _state.value.fullName
                 val email = _state.value.email
                 val phoneNumber = _state.value.phoneNumber
-                val password = _state.value.password
                 val idNumber = _state.value.idNumber
                 val emergencyNumber = _state.value.emergencyNumber
 
@@ -124,15 +119,17 @@ class ContactViewModel(
                 val sanitizedPhone = phoneNumber.replace(Regex("[^0-9]"), "")
                 val sanitizedEmergencyPhone = emergencyNumber.replace(Regex("[^0-9]"), "")
 
+                val token = TokenManager.getToken() ?: ""
+                val isLoggedIn = token.isNotEmpty() && token != "OFFLINE_SESSION"
+
                 val contact = Contact(
                     id = 1,
                     fullName = fullName,
                     email = email,
                     phoneNumber = sanitizedPhone,
-                    password = password,
                     idNumber = idNumber,
                     emergencyNumber = sanitizedEmergencyPhone,
-                    isCurrentUser = true
+                    isCurrentUser = isLoggedIn
                 )
 
                 viewModelScope.launch {
@@ -154,12 +151,36 @@ class ContactViewModel(
                                     fullName = profile.fullName,
                                     email = profile.email,
                                     phoneNumber = profile.phoneNumber,
-                                    password = profile.password,
                                     idNumber = profile.idNumber,
                                     emergencyNumber = profile.emergencyNumber
                                 )
                             }
                         }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+            }
+
+            // -------------------------------------------------------------
+            // LOGOUT FLOW IMPLEMENTATION
+            // -------------------------------------------------------------
+            is ContactEvent.Logout -> {
+                viewModelScope.launch {
+                    try {
+                        // 1. Fetch current profile from Room database
+                        val currentProfile = dao.getUserProfile().first()
+                        if (currentProfile != null) {
+                            // 2. Set active flag to false to prevent startup bypass
+                            dao.upsertContact(currentProfile.copy(isCurrentUser = false))
+                        }
+
+                        // 3. Purge data tokens entirely from Datastore Preferences & SharedPreferences
+                        event.sessionManager.clearSession()
+                        TokenManager.clearToken()
+
+                        // 4. Fire the navigation callback to clear screen stack frames back to Login form
+                        event.onLogoutComplete()
                     } catch (e: Exception) {
                         e.printStackTrace()
                     }
@@ -210,7 +231,6 @@ class ContactViewModel(
                             amount = current.amount
                         )
 
-                        // Step 1: Register the core booking record in your system and get the booking reference
                         val response = RetrofitClient.bookingInstance.proceedToPayment(bearerToken, request)
 
                         if (response.isSuccessful) {
@@ -230,7 +250,6 @@ class ContactViewModel(
                                 )
                             }
                         } else {
-                            // Booking registration failed early
                             _state.update {
                                 it.copy(
                                     isBookingLoading = false,
@@ -266,7 +285,6 @@ class ContactViewModel(
                             formattedPhone = "254$formattedPhone"
                         }
 
-                        // Step 2: Use the booking reference to initiate the M-Pesa STK Push
                         val mpesaPayload = MpesaPushRequest(
                             amount = current.amount.coerceAtLeast(10.0),
                             phoneNumber = formattedPhone,
@@ -275,16 +293,13 @@ class ContactViewModel(
                             transactionDesc = "Booking Payment"
                         )
 
-                        // Pointing to the mpesa api reference wrapper service instance inside RetrofitClient
                         val mpesaResponse = RetrofitClient.mpesaInstance.initiateStkPush(bearerToken, mpesaPayload)
 
                         if (mpesaResponse.isSuccessful && mpesaResponse.body()?.success == true) {
-                            // Daraja request creation completed perfectly!
                             _state.update {
                                 it.copy(isBookingLoading = false, isBookingSuccessful = true, showPaymentDialog = false)
                             }
                         } else {
-                            // M-Pesa API rejected details (e.g. invalid safaricom number format)
                             val mpesaErrorReason = mpesaResponse.body()?.message ?: "M-Pesa validation rejection."
                             _state.update {
                                 it.copy(

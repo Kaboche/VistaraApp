@@ -1,161 +1,148 @@
 package com.example.vistaraapp.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-
-// 📋 Notification Data Structure
-data class NotificationItem(
-    val id: String,
-    val title: String,
-    val message: String,
-    val timestamp: String,
-    val isAlert: Boolean = false
-)
-
-// 📍 Hardcoded Safari Data for testing layout look & feel
-val sampleNotifications = listOf(
-    NotificationItem(
-        id = "1",
-        title = "Gate Check-in Confirmed",
-        message = "Your digital pass for Nairobi National Park has been successfully verified at the main gate. Enjoy your game drive!",
-        timestamp = "2 hours ago"
-    ),
-    NotificationItem(
-        id = "2",
-        title = "Weather Alert: Rain Storm",
-        message = "Sudden heavy downpours are expected near the central savannah tracks around 3:00 PM. Drive cautiously.",
-        timestamp = "4 hours ago",
-        isAlert = true
-    ),
-    NotificationItem(
-        id = "3",
-        title = "Booking Successful",
-        message = "Payment received! Booking ID NBO-001 is now confirmed for June 15, 2026.",
-        timestamp = "1 day ago"
-    )
-)
+import com.example.vistaraapp.ui.components.BookingInboxEntry
+import com.example.vistaraapp.ui.components.BroadcastInboxEntry
+import com.example.vistaraapp.ui.components.OtherNotificationRow
+import com.example.vistaraapp.utils.isBookingNotification
+import com.example.vistaraapp.utils.isBroadcastNotification
+import com.example.vistaraapp.viewmodels.BookingViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NotificationScreen(navController: NavController) {
+fun NotificationScreen(
+    navController: NavController,
+    viewModel: BookingViewModel,
+    authToken: String
+) {
+    // 1. DYNAMIC THEME COLORS
+    val isDark = isSystemInDarkTheme()
     val brandGreen = Color(0xFF029602)
-    val lightGray = Color(0xFFF8F9FA)
+    val bgColor = if (isDark) Color(0xFF121212) else Color.White
+    val surfaceColor = if (isDark) Color(0xFF1C1C1E) else Color.White
+    val textColor = if (isDark) Color.White else Color.Black
+    val secondaryTextColor = Color(0xFF8E8E93)
+    val dividerColor = if (isDark) Color(0xFF2C2C2E) else Color(0xFFE5E5EA)
+
+    val liveNotifications by viewModel.notifications.collectAsState()
+    val unreadNotifications by viewModel.unreadNotifications.collectAsState()
+    val isLoadingAll by viewModel.isLoadingNotifications.collectAsState()
+    var isRefreshing by remember { mutableStateOf(false) }
+
+    LaunchedEffect(authToken) {
+        if (authToken.isNotEmpty() && authToken != "OFFLINE_SESSION") {
+            viewModel.fetchAllNotifications(authToken)
+            viewModel.fetchUnreadNotifications(authToken)
+        }
+    }
+
+    // Filtering Logic
+    val unreadBookings = remember(unreadNotifications) { unreadNotifications.filter { isBookingNotification(it) } }
+    val readBookings = remember(liveNotifications, unreadNotifications) {
+        liveNotifications.filter { isBookingNotification(it) && unreadNotifications.none { u -> u.id == it.id } }
+    }
+    val unreadBroadcasts = remember(unreadNotifications) { unreadNotifications.filter { isBroadcastNotification(it) && !isBookingNotification(it) } }
+    val readBroadcasts = remember(liveNotifications, unreadNotifications) {
+        liveNotifications.filter { isBroadcastNotification(it) && !isBookingNotification(it) && unreadNotifications.none { u -> u.id == it.id } }
+    }
+    val otherNotifications = remember(liveNotifications) {
+        liveNotifications.filter { !isBookingNotification(it) && !isBroadcastNotification(it) }
+    }
 
     Scaffold(
+        containerColor = bgColor,
         topBar = {
-            TopAppBar(
-                title = {
-                    Text("Notifications", fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                },
-                // ↩️ Responsive Back Arrow navigation
+            CenterAlignedTopAppBar(
+                title = { Text("Notifications", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = textColor) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Text("←", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = brandGreen)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = brandGreen)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = bgColor)
             )
         }
     ) { innerPadding ->
-        Surface(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
-            color = lightGray
+        PullToRefreshBox(
+            modifier = Modifier.padding(innerPadding),
+            isRefreshing = isRefreshing,
+            onRefresh = {
+                viewModel.fetchAllNotifications(authToken)
+                viewModel.fetchUnreadNotifications(authToken)
+            }
         ) {
-            if (sampleNotifications.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "No alerts or notifications yet.",
-                        color = Color.Gray,
-                        fontSize = 14.sp
-                    )
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(sampleNotifications) { notification ->
-                        NotificationCard(notification = notification, brandGreen = brandGreen)
+            LazyColumn(modifier = Modifier.fillMaxSize().background(bgColor)) {
+
+                // Aggregated Bookings
+                if (unreadBookings.isNotEmpty() || readBookings.isNotEmpty()) {
+                    item {
+                        BookingInboxEntry(
+                            unreadCount = unreadBookings.size,
+                            latestMessage = unreadBookings.firstOrNull()?.message ?: readBookings.firstOrNull()?.message ?: "",
+                            latestTimestamp = unreadBookings.firstOrNull()?.timestamp ?: readBookings.firstOrNull()?.timestamp ?: "",
+                            onClick = {
+                                if (unreadBookings.isNotEmpty()) viewModel.markMultipleNotificationsAsRead(authToken, unreadBookings.map { it.id })
+                                navController.navigate("booking_notifications_list")
+                            }
+                        )
+                        HorizontalDivider(thickness = 0.5.dp, color = dividerColor)
                     }
                 }
-            }
-        }
-    }
-}
 
-@Composable
-fun NotificationCard(notification: NotificationItem, brandGreen: Color) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(2.dp)
-    ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.Top
-        ) {
-            // 🟢 Status Indicator Dot (Red for urgent weather alerts, Green for standard updates)
-            Box(
-                modifier = Modifier
-                    .size(10.dp)
-                    .offset(y = 4.dp)
-                    .background(
-                        color = if (notification.isAlert) Color(0xFFF44336) else brandGreen,
-                        shape = CircleShape
-                    )
-            )
-
-            Column(modifier = Modifier.weight(1f)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = notification.title,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.Black,
-                        modifier = Modifier.weight(1f)
-                    )
-                    Text(
-                        text = notification.timestamp,
-                        fontSize = 11.sp,
-                        color = Color.Gray,
-                        textAlign = TextAlign.End
-                    )
+                // Aggregated Broadcasts
+                if (unreadBroadcasts.isNotEmpty() || readBroadcasts.isNotEmpty()) {
+                    item {
+                        BroadcastInboxEntry(
+                            unreadCount = unreadBroadcasts.size,
+                            latestMessage = unreadBroadcasts.firstOrNull()?.message ?: readBroadcasts.firstOrNull()?.message ?: "",
+                            latestTimestamp = unreadBroadcasts.firstOrNull()?.timestamp ?: readBroadcasts.firstOrNull()?.timestamp ?: "",
+                            onClick = {
+                                if (unreadBroadcasts.isNotEmpty()) viewModel.markMultipleNotificationsAsRead(authToken, unreadBroadcasts.map { it.id })
+                                navController.navigate("broadcast_notifications_list")
+                            }
+                        )
+                        HorizontalDivider(thickness = 0.5.dp, color = dividerColor)
+                    }
                 }
 
-                Spacer(modifier = Modifier.height(6.dp))
+                // Individual Rows
+                items(otherNotifications) { notification ->
+                    val isUnread = unreadNotifications.any { it.id == notification.id }
+                    OtherNotificationRow(
+                        notification = notification,
+                        isUnread = isUnread,
+                        onClick = {
+                            if (isUnread) viewModel.markNotificationAsRead(authToken, notification.id)
+                            navController.navigate("notification_detail/${notification.id}")
+                        }
+                    )
+                    HorizontalDivider(thickness = 0.5.dp, color = dividerColor)
+                }
 
-                Text(
-                    text = notification.message,
-                    fontSize = 13.sp,
-                    color = Color.DarkGray,
-                    lineHeight = 18.sp
-                )
+                // Empty State
+                if (liveNotifications.isEmpty() && !isLoadingAll) {
+                    item {
+                        Box(modifier = Modifier.fillParentMaxSize(), contentAlignment = Alignment.Center) {
+                            Text("No notifications found", color = secondaryTextColor)
+                        }
+                    }
+                }
             }
         }
     }

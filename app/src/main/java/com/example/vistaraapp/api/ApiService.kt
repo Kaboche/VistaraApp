@@ -1,9 +1,16 @@
 package com.example.vistaraapp.api
 
+import com.example.vistaraapp.api_requests_responses.ActiveSessionResponse
+import com.example.vistaraapp.api_requests_responses.CheckInRequest
 import com.example.vistaraapp.api_requests_responses.SosRequest
 import com.example.vistaraapp.api_requests_responses.SosResponse
 import com.example.vistaraapp.api_requests_responses.BookingsResponse
+import com.example.vistaraapp.api_requests_responses.NotificationListResponse
 import com.example.vistaraapp.ProfileNetworkRequest
+import com.example.vistaraapp.api_requests_responses.UnreadCountResponse
+import com.example.vistaraapp.api_requests_responses.NotificationReadResponse
+import com.example.vistaraapp.api_requests_responses.TrackingUpdateRequest
+import com.example.vistaraapp.api_requests_responses.TrackingUpdateResponse
 import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.Body
@@ -13,7 +20,6 @@ import retrofit2.http.Headers
 import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.PUT
-
 
 // 1. DATA MODELS FOR BOOKINGS & PAYMENTS
 
@@ -32,7 +38,7 @@ data class BookingCreationResponse(
     val message: String?
 )
 
-//Mpesa
+// Mpesa
 data class MpesaPushRequest(
     val amount: Double,
     val phoneNumber: String,
@@ -47,7 +53,7 @@ data class MpesaPushResponse(
     val checkoutRequestID: String?
 )
 
-// 2. BOOKING & EMERGENCY ENDPOINTS SERVICE
+// 2. BOOKING, EMERGENCY & NOTIFICATION ENDPOINTS SERVICE
 interface ApiService {
 
     @Headers("ngrok-skip-browser-warning: true")
@@ -76,6 +82,49 @@ interface ApiService {
         @Header("Authorization") bearerToken: String,
         @Body sosData: SosRequest
     ): Response<SosResponse>
+
+    // notifications
+    @Headers("ngrok-skip-browser-warning: true")
+    @GET("notifications")
+    suspend fun getNotifications(
+        @Header("Authorization") bearerToken: String
+    ): Response<NotificationListResponse>
+
+    // unread notifications
+    @Headers( "ngrok-skip-browser-warning: true")
+    @GET("notifications/unread")
+    suspend fun getUnreadNotifications(
+        @Header ("Authorization") bearerToken: String
+    ): Response<NotificationListResponse>
+    @Headers( "ngrok-skip-browser-warning: true")
+    @GET("notifications/unread-count")
+    suspend fun countNotifications(
+        @Header ("Authorization") bearerToken: String
+    ): Response<UnreadCountResponse>
+
+    //mark a  notification as read
+@Headers( "ngrok-skip-browser-warning: true")
+@PUT("notifications/{id}/read")
+suspend fun markNotificationAsRead(
+    @Header ("Authorization") bearerToken: String,
+    @Path("id") id: String
+): Response<ResponseBody>
+
+// mark all notifications as read
+@Headers("ngrok-skip-browser-warning: true")
+@PUT("notifications/{id}/read-all")
+suspend fun markAllNotificationAsRead(
+    @Header ("Authorization") bearerToken: String,
+    @Path("id") id: String
+): Response<NotificationReadResponse>
+
+   //tracking
+    @Headers("ngrok-skip-browser-warning: true")
+    @POST("tracking/update")
+    suspend fun updateTracking(
+        @Header("Authorization") bearerToken: String,
+        @Body request: TrackingUpdateRequest
+    ): Response<TrackingUpdateResponse>
 }
 
 // 3. PROFILE ENDPOINTS SERVICE
@@ -95,7 +144,6 @@ interface ProfileApiService {
     ): Response<Map<String, Any>>
 }
 
-
 // 4. M-PESA STK PUSH SERVICE
 interface VistaraApi {
     @Headers("ngrok-skip-browser-warning: true")
@@ -104,4 +152,20 @@ interface VistaraApi {
         @Header("Authorization") bearerToken: String,
         @Body request: MpesaPushRequest
     ): Response<MpesaPushResponse>
+}
+
+// 5. SESSION ID SERVICE
+interface SessionApi {
+    @Headers("ngrok-skip-browser-warning: true")
+    @GET("visitor/active-session")
+    suspend fun checkActiveSession(
+        @Header("Authorization") bearerToken: String
+    ): Response<ActiveSessionResponse>
+
+    @Headers("ngrok-skip-browser-warning: true")
+    @POST("visitor/check-in")
+    suspend fun checkIn(
+        @Header("Authorization") bearerToken: String,
+        @Body request: CheckInRequest
+    ): Response<ActiveSessionResponse>
 }

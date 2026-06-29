@@ -10,7 +10,6 @@ data class Contact(
     val fullName: String,
     val email: String,
     val phoneNumber:String,
-    val password: String,
     val idNumber: String,
     val emergencyNumber: String,
     val isCurrentUser: Boolean = false

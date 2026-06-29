@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.util.Patterns
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -71,9 +72,9 @@ fun RegisterScreen(
 
     // Brand Colors (100% Preserved)
     val brandGreen = Color(0xFF029602)
-    val pureWhite = Color(0xFFFFFFFF)
-    val lightGray = Color(0xFFF5F5F5)
-    val errorRed = Color(0xFFD32F2F)
+    val pureWhite = MaterialTheme.colorScheme.surface
+    val lightGray = if (isSystemInDarkTheme()) Color(0xFF1E1E1E) else Color(0xFFF5F5F5)
+    val errorRed = MaterialTheme.colorScheme.error
 
     val isLoading = registerState is RegisterUiState.Loading
 
@@ -100,7 +101,7 @@ fun RegisterScreen(
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = pureWhite)
             )
         },
-        containerColor = pureWhite
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -115,7 +116,7 @@ fun RegisterScreen(
             Text(
                 text = "Join Vistara for park safety",
                 fontSize = 14.sp,
-                color = Color.Gray,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = 24.dp)
             )
 
@@ -276,7 +277,6 @@ fun RegisterScreen(
                                     contactViewModel.onEvent(ContactEvent.SetFullName(fullName))
                                     contactViewModel.onEvent(ContactEvent.SetEmail(email))
                                     contactViewModel.onEvent(ContactEvent.SetPhoneNumber(phoneNumber))
-                                    contactViewModel.onEvent(ContactEvent.SetPassword(password))
                                     contactViewModel.onEvent(ContactEvent.SetIdNumber(nationalIdNo))
                                     contactViewModel.onEvent(ContactEvent.SetEmergencyNumber(emergencyContactPhone))
                                     contactViewModel.onEvent(ContactEvent.SaveContact)
@@ -306,14 +306,14 @@ fun RegisterScreen(
                         if (isLoading) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(22.dp),
-                                color = pureWhite
+                                color = Color.White
                             )
                         } else {
                             Text(
                                 text = "REGISTER",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = pureWhite
+                                color = Color.White
                             )
                         }
                     }
@@ -338,10 +338,11 @@ fun RegisterScreen(
 @Composable
 private fun textFieldColors(brandGreen: Color) = OutlinedTextFieldDefaults.colors(
     focusedBorderColor = brandGreen,
-    unfocusedBorderColor = Color.LightGray,
+    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
     focusedLabelColor = brandGreen,
-    focusedTextColor = Color.Black,
-    unfocusedTextColor = Color.Black
+    unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+    unfocusedTextColor = MaterialTheme.colorScheme.onSurface
 )
 
 // Helper extension function to securely unwrap Context into a ComponentActivity

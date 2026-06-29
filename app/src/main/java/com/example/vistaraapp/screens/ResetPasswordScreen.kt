@@ -20,8 +20,8 @@ import androidx.navigation.NavController
 @Composable
 fun ResetPasswordScreen(navController: NavController) {
     val brandGreen = Color(0xFF029602)
-    val pureWhite = Color(0xFFFFFFFF)
-    val inputBackground = Color(0xFFF9F9F9)
+    val pureWhite = MaterialTheme.colorScheme.surface
+    val inputBackground = MaterialTheme.colorScheme.surfaceVariant
 
     var email by remember { mutableStateOf("") }
 
@@ -48,7 +48,7 @@ fun ResetPasswordScreen(navController: NavController) {
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = pureWhite)
             )
         },
-        containerColor = pureWhite
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -75,7 +75,7 @@ fun ResetPasswordScreen(navController: NavController) {
                     Text(
                         text = "Don't worry! Enter your registered email address below, and we will send you a secure link to reset your account credentials.",
                         fontSize = 14.sp,
-                        color = Color.DarkGray,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         lineHeight = 20.sp
                     )
 
@@ -91,9 +91,10 @@ fun ResetPasswordScreen(navController: NavController) {
                             focusedContainerColor = inputBackground,
                             unfocusedContainerColor = inputBackground,
                             focusedBorderColor = brandGreen,
+                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
                             focusedLabelColor = brandGreen,
-                            focusedTextColor = Color.Black,
-                            unfocusedTextColor = Color.Black,
+                            unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
                             cursorColor = brandGreen
                         ),
                         shape = RoundedCornerShape(14.dp)
@@ -116,7 +117,7 @@ fun ResetPasswordScreen(navController: NavController) {
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = brandGreen,
-                    contentColor = pureWhite
+                    contentColor = Color.White
                 ),
                 elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
             ) {

@@ -23,6 +23,8 @@ import com.example.vistaraapp.screens.navigation.ModernBottomBar
 import com.example.vistaraapp.ui.theme.VistaraTheme
 import com.example.vistaraapp.utils.TokenManager
 import com.example.vistaraapp.viewmodels.BookingViewModel
+import com.example.vistaraapp.viewmodels.SessionViewModel
+import com.example.vistaraapp.viewmodels.ViewModelFactory
 import com.example.vistaraapp.database.ContactViewModel
 
 class MainActivity : ComponentActivity() {
@@ -30,6 +32,9 @@ class MainActivity : ComponentActivity() {
     private val db by lazy {
         ContactDatabase.getDatabase(applicationContext)
     }
+    private val sessionViewModel by viewModels<SessionViewModel>(
+        factoryProducer = { ViewModelFactory(application) }
+    )
     // 1. Dependency injection for Contacts
     private val contactViewModel by viewModels<ContactViewModel>(
         factoryProducer = {
@@ -42,7 +47,7 @@ class MainActivity : ComponentActivity() {
         }
     )
 
-    // 🚨 FIX 1: ADDED DEPENDENCY INJECTION FOR BOOKING/SOS VIEWMODEL
+    // DEPENDENCY INJECTION FOR BOOKING/SOS VIEWMODEL
     private val bookingViewModel by viewModels<BookingViewModel>(
         factoryProducer = {
             object : ViewModelProvider.Factory {
@@ -62,10 +67,11 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             VistaraTheme {
-                // 🚨 FIX 2: PASSED BOOKING VIEWMODEL INTO VISTARAAPP
+                // BOOKING VIEWMODEL INTO VISTARAAPP
                 VistaraApp(
                     contactViewModel = contactViewModel,
                     bookingViewModel = bookingViewModel,
+                    sessionViewModel = sessionViewModel,
                     contactDao = db.dao
                 )
             }
@@ -77,6 +83,7 @@ class MainActivity : ComponentActivity() {
 fun VistaraApp(
     contactViewModel: ContactViewModel,
     bookingViewModel: BookingViewModel,
+    sessionViewModel: SessionViewModel,
     contactDao: ContactDao
 ) {
     val navController = rememberNavController()
@@ -113,9 +120,10 @@ fun VistaraApp(
         AppNavigation(
             navController = navController,
             contactViewModel = contactViewModel,
-            contactState = contactState,
             bookingViewModel = bookingViewModel, // Safely moving into AppNavigation graph
+            contactState = contactState,
             contactDao = contactDao,
+            sessionViewModel = sessionViewModel,
             sessionToken = sessionToken,
 
             onTokenUpdated = { newTokenString ->

@@ -21,6 +21,21 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "BASE_URL", "\"https://undrafted-erasable-crevice.ngrok-free.dev/api/v1/\"")
+
+            compileOptions {
+                isCoreLibraryDesugaringEnabled = true
+                sourceCompatibility = JavaVersion.VERSION_1_8
+                targetCompatibility = JavaVersion.VERSION_1_8
+            }
+
+
+
+
+
+
+
+
+
     }
 
     buildTypes {
@@ -57,7 +72,12 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.navigation.runtime.ktx)
-
+    val lifecycle_version = "2.6.2"
+    implementation("com.google.android.gms:play-services-mlkit-barcode-scanning:18.3.0")
+    implementation("androidx.lifecycle:lifecycle-service:$lifecycle_version")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:$lifecycle_version")
+    implementation("androidx.core:core-ktx:1.12.0")
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -65,6 +85,11 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+    implementation("com.kizitonwose.calendar:compose:2.10.1")
+    implementation("androidx.camera:camera-camera2-pipe:1.6.1")
+    implementation("androidx.camera:camera-lifecycle:1.6.1")
+    implementation("androidx.camera:camera-view:1.6.1")
+    implementation("com.google.android.gms:play-services-mlkit-barcode-scanning:18.3.1")
 
     implementation("androidx.navigation:navigation-compose:2.9.8")
 

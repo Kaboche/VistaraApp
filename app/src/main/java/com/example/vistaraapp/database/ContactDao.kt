@@ -37,4 +37,7 @@ interface ContactDao {
     // Reactive stream for the single user profile row (always id = 1)
     @Query("SELECT * FROM contact WHERE isCurrentUser = 1 LIMIT 1")
     fun getUserProfile(): Flow<Contact?>
+
+    @Query("SELECT * FROM contact WHERE id = :id LIMIT 1")
+    suspend fun getContactById(id: Int): Contact?
 }

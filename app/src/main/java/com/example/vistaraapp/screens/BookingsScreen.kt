@@ -1,6 +1,7 @@
 package com.example.vistaraapp.screens
 
 import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -16,7 +17,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import androidx.compose.ui.platform.LocalLifecycleOwner
+// FIX: Resolved the deprecation warning by importing from the modern compose runtime library
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
 import com.example.vistaraapp.viewmodels.BookingUiState
 import com.example.vistaraapp.viewmodels.BookingViewModel
@@ -29,11 +31,11 @@ fun BookingsScreen(
     authToken: String
 ) {
     val brandGreen = Color(0xFF029602)
-    val lightGray = Color(0xFFF8F9FA)
+    val lightGray = MaterialTheme.colorScheme.background
     val parkName = "Nairobi National Park"
     val context = LocalContext.current
 
-    // 1. Triggers the network API fetch every time the screen is resumed
+    // Triggers the network API fetch every time the screen is resumed
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner, authToken) {
         val observer = LifecycleEventObserver { _, event ->
@@ -47,7 +49,6 @@ fun BookingsScreen(
         }
     }
 
-    // 2. Observes the cancellation status state feedback
     val cancellationStatus by viewModel.cancellationStatus
 
     LaunchedEffect(cancellationStatus) {
@@ -57,7 +58,6 @@ fun BookingsScreen(
         }
     }
 
-    // 3. Read the current architectural state from ViewModel
     val uiState by viewModel.uiState
 
     Surface(
@@ -104,9 +104,14 @@ fun BookingsScreen(
                                     booking = booking,
                                     parkName = parkName,
                                     onCancel = {
-                                        //Executes the cancel task on backend when button clicked!
                                         booking.id?.let { id ->
                                             viewModel.cancelBooking(authToken, id.toString())
+                                        }
+                                    },
+                                    onPay = {
+                                        booking.bookingReference?.let { ref ->
+                                            // Ensure this function name matches your ViewModel payment trigger function
+                                            viewModel.initiateMpesaPayment(authToken, ref)
                                         }
                                     },
                                     brandGreen = brandGreen
@@ -120,7 +125,8 @@ fun BookingsScreen(
                                 BookingCard(
                                     booking = booking,
                                     parkName = parkName,
-                                    onCancel = null, // Disables button for old history logs
+                                    onCancel = null,
+                                    onPay = null,
                                     brandGreen = brandGreen
                                 )
                             }
@@ -148,20 +154,23 @@ fun BookingCard(
     booking: BookingData,
     parkName: String,
     onCancel: (() -> Unit)?,
+    onPay: (() -> Unit)?,
     brandGreen: Color
 ) {
     val status = booking.bookingStatus ?: "PENDING"
     val statusColor = when (status.uppercase()) {
         "CONFIRMED", "COMPLETED" -> Color(0xFF4CAF50)
         "PENDING" -> Color(0xFFFF9800)
-        else -> Color(0xFFF44336) // CANCELLED
+        else -> Color(0xFFF44336)
     }
+
+    val mpesaAmber = Color(0xFFFFB300)
 
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(2.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(
             modifier = Modifier.padding(16.dp)
@@ -175,7 +184,7 @@ fun BookingCard(
                     text = parkName,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.Black
+                    color = MaterialTheme.colorScheme.onSurface
                 )
 
                 Surface(
@@ -193,7 +202,7 @@ fun BookingCard(
             }
 
             Spacer(modifier = Modifier.height(8.dp))
-            HorizontalDivider(color = Color.LightGray)
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             Spacer(modifier = Modifier.height(8.dp))
 
             DetailRow(label = "Check In Date", value = booking.checkInDate)
@@ -203,15 +212,28 @@ fun BookingCard(
             DetailRow(label = "Total Amount", value = "KES ${booking.amount ?: 0.0}", valueColor = brandGreen)
             DetailRow(label = "Booking Ref", value = booking.bookingReference)
 
-            if ((status.uppercase() == "CONFIRMED" || status.uppercase() == "PENDING") && onCancel != null) {
+            if (status.uppercase() == "PENDING" && onPay != null) {
                 Spacer(modifier = Modifier.height(12.dp))
                 Button(
+                    onClick = onPay,
+                    modifier = Modifier.fillMaxWidth().height(40.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = brandGreen)
+                ) {
+                    Text("Make Payment (M-Pesa)", fontSize = 12.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            }
+
+            if ((status.uppercase() == "CONFIRMED" || status.uppercase() == "PENDING") && onCancel != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedButton(
                     onClick = onCancel,
                     modifier = Modifier.fillMaxWidth().height(40.dp),
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF44336))
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFF44336)),
+                    border = BorderStroke(1.dp, Color(0xFFF44336))
                 ) {
-                    Text("Cancel Booking", fontSize = 12.sp, color = Color.White)
+                    Text("Cancel Booking", fontSize = 12.sp, fontWeight = FontWeight.Medium)
                 }
             }
         }
@@ -219,13 +241,13 @@ fun BookingCard(
 }
 
 @Composable
-fun DetailRow(label: String, value: String?, valueColor: Color = Color.Black) {
+fun DetailRow(label: String, value: String?, valueColor: Color = MaterialTheme.colorScheme.onSurface) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(text = label, fontSize = 13.sp, color = Color.Gray, fontWeight = FontWeight.Medium)
+        Text(text = label, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Medium)
         Text(text = value ?: "N/A", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = valueColor)
     }
 }
@@ -247,7 +269,7 @@ fun EmptyBookingsState(navController: NavController, brandGreen: Color, parkName
         Text(
             text = "You haven't booked a safari at $parkName yet.",
             fontSize = 14.sp,
-            color = Color.Gray
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(modifier = Modifier.height(24.dp))
         Button(
@@ -269,7 +291,7 @@ fun ErrorState(message: String, onRetry: () -> Unit, brandGreen: Color) {
     ) {
         Text(text = "Something Went Wrong", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.Red)
         Spacer(modifier = Modifier.height(8.dp))
-        Text(text = message, fontSize = 14.sp, color = Color.Gray, modifier = Modifier.padding(horizontal = 16.dp))
+        Text(text = message, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 16.dp))
         Spacer(modifier = Modifier.height(16.dp))
         Button(
             onClick = onRetry,

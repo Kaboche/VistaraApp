@@ -13,17 +13,45 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.vistaraapp.viewmodels.SessionViewModel
+import com.example.vistaraapp.viewmodels.SessionUiState
 
 @Composable
-fun CheckInScreen(navController: NavController) {
+fun CheckInScreen(
+    navController: NavController,
+    viewModel: SessionViewModel,
+    authToken: String
+) {
     val brandGreen = Color(0xFF029602)
-    val pureWhite = Color(0xFFFFFFFF)
-    val lightGray= Color(0xFFF5F5F5)
+    val pureWhite = Color.White
+    val lightGray = MaterialTheme.colorScheme.background
 
     var groupSize by remember { mutableStateOf("1") }
     var vehicleNumber by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    val checkInState by viewModel.checkInState.collectAsState()
+
+    LaunchedEffect(checkInState) {
+        when (checkInState) {
+            is SessionUiState.Loading -> {
+                isLoading = true
+                errorMessage = null
+            }
+            is SessionUiState.Success -> {
+                isLoading = false
+                errorMessage = null
+            }
+            is SessionUiState.Error -> {
+                isLoading = false
+                errorMessage = (checkInState as SessionUiState.Error).message
+            }
+            else -> {
+                isLoading = false
+            }
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -41,7 +69,7 @@ fun CheckInScreen(navController: NavController) {
     ) {
         Text("Check In to Park", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = brandGreen)
         Spacer(Modifier.height(8.dp))
-        Text("Please provide your details", fontSize = 14.sp, color = Color.Gray)
+        Text("Please provide your details", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(48.dp))
 
         OutlinedTextField(
@@ -55,9 +83,9 @@ fun CheckInScreen(navController: NavController) {
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = brandGreen,
                 focusedLabelColor = brandGreen,
-                unfocusedBorderColor = Color.LightGray,
-                focusedTextColor = Color.Black,
-                unfocusedTextColor = Color.Black
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurface
             )
         )
 
@@ -73,9 +101,9 @@ fun CheckInScreen(navController: NavController) {
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = brandGreen,
                 focusedLabelColor = brandGreen,
-                unfocusedBorderColor = Color.LightGray,
-                focusedTextColor = Color.Black,
-                unfocusedTextColor = Color.Black
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurface
             )
         )
 
@@ -86,12 +114,12 @@ fun CheckInScreen(navController: NavController) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(
-                        color = Color(0xFFFFEBEE),
+                        color = if (androidx.compose.foundation.isSystemInDarkTheme()) Color(0xFF421E22) else Color(0xFFFFEBEE),
                         shape = RoundedCornerShape(8.dp)
                     )
                     .padding(8.dp)
             )
-            Text(errorMessage!!, color = Color(0xFFD32F2F), fontSize = 12.sp)
+            Text(errorMessage!!, color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
         }
 
         Spacer(Modifier.height(32.dp))
@@ -102,9 +130,13 @@ fun CheckInScreen(navController: NavController) {
                 if (size == null || size < 1) {
                     errorMessage = "Please enter a valid group size"
                 } else {
-                    isLoading = true
-                    isLoading = false
-                    navController.navigate("map_tracking")
+                    viewModel.checkIn(
+                        token = authToken,
+                        groupSize = size,
+                        vehicleRegistration = vehicleNumber.trim().takeIf { it.isNotEmpty() }
+                    ) {
+                        navController.navigate("map_tracking")
+                    }
                 }
             },
             modifier = Modifier.fillMaxWidth().height(56.dp),

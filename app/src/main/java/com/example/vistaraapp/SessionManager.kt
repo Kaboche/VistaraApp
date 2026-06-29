@@ -13,6 +13,7 @@ class SessionManager(private val context: Context) {
 
     companion object {
         val TOKEN_KEY = stringPreferencesKey("auth_token")
+        val ROLE_KEY = stringPreferencesKey("user_role")
     }
 
     // SAVE TOKEN
@@ -26,6 +27,19 @@ class SessionManager(private val context: Context) {
     suspend fun getToken(): String? {
         val prefs = context.dataStore.data.first()
         return prefs[TOKEN_KEY]
+    }
+
+    // SAVE ROLE
+    suspend fun saveRole(role: String) {
+        context.dataStore.edit { prefs ->
+            prefs[ROLE_KEY] = role
+        }
+    }
+
+    // GET ROLE
+    suspend fun getRole(): String? {
+        val prefs = context.dataStore.data.first()
+        return prefs[ROLE_KEY]
     }
 
     // CLEAR SESSION (LOGOUT)

@@ -2,7 +2,7 @@ package com.example.vistaraapp.entities_dataclass
 
 import com.example.vistaraapp.R
 
-data class UniqueAnimal(
+data class UniqueAnimal(// this defines information each animal must have.
     val id: Int,
     val name: String,
     val scientificName: String,
@@ -13,7 +13,7 @@ data class UniqueAnimal(
 )
 
 val uniqueAnimals = listOf(
-    // ========== BIG FIVE ==========
+    // BIG FIVE
     UniqueAnimal(
         id = 1,
         name = "Lion",
@@ -60,7 +60,7 @@ val uniqueAnimals = listOf(
         bestTimeToSee = "Late afternoon (4pm - 6pm)"
     ),
 
-    // ========== OTHER MAMMALS ==========
+    //OTHER MAMMALS
     UniqueAnimal(
         id = 6,
         name = "Giraffe",
@@ -98,7 +98,7 @@ val uniqueAnimals = listOf(
         bestTimeToSee = "Late afternoon when they leave water"
     ),
 
-    // ========== ANTELOPES ==========
+    // ANTELOPES
     UniqueAnimal(
         id = 10,
         name = "Eland",
@@ -136,7 +136,7 @@ val uniqueAnimals = listOf(
         bestTimeToSee = "Early morning"
     ),
 
-    // ========== BIRDS ==========
+    //  BIRDS
     UniqueAnimal(
         id = 14,
         name = "Ostrich",
@@ -156,7 +156,7 @@ val uniqueAnimals = listOf(
         bestTimeToSee = "Morning hours"
     ),
 
-    // ========== OTHER ==========
+    // OTHER
     UniqueAnimal(
         id = 16,
         name = "Warthog",

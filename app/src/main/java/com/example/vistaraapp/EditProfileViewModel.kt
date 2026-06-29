@@ -53,8 +53,7 @@ class EditProfileViewModel(
                             idNumber = profile.idNumber,
                             phoneNumber = profile.phoneNumber,
                             emergencyNumber = profile.emergencyNumber,
-                            email = profile.email,
-                            password = profile.password
+                            email = profile.email
                         )
                     }
                 }
@@ -73,7 +72,6 @@ class EditProfileViewModel(
                 fullName = currentState.fullName,
                 email = currentState.email,
                 phoneNumber = currentState.phoneNumber,
-                password = currentState.password,
                 idNumber = currentState.idNumber,
                 emergencyNumber = currentState.emergencyNumber,
                 isCurrentUser = true
