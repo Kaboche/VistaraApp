@@ -70,14 +70,6 @@ fun BookingSuccessContent(
 
     Spacer(Modifier.height(32.dp))
 
-    Button(
-        onClick = onCheckInNow,
-        modifier = Modifier.fillMaxWidth().height(56.dp),
-        shape = RoundedCornerShape(35.dp),
-        colors = ButtonDefaults.buttonColors(brandGreen)
-    ) {
-        Text("CHECK IN NOW", fontWeight = FontWeight.Bold, color = Color.White)
-    }
 }
 
 @Composable

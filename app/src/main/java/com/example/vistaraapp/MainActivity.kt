@@ -129,6 +129,9 @@ fun VistaraApp(
             onTokenUpdated = { newTokenString ->
                 sessionToken = newTokenString
                 TokenManager.saveToken(newTokenString)
+                if (newTokenString.isEmpty()) {
+                    isLoggedIn = false
+                }
             },
 
             onLoginSuccess = { isLoggedIn = true },

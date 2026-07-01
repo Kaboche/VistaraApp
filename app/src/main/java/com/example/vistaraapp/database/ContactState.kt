@@ -27,5 +27,6 @@ data class ContactState(
     val showPaymentDialog: Boolean = false,
     val isBookingLoading: Boolean = false,
     val bookingErrorMessage: String? = null,
-    val isBookingSuccessful: Boolean = false
+    val isBookingSuccessful: Boolean = false,
+    val isBookingFailed: Boolean = false
 )

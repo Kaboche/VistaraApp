@@ -34,6 +34,7 @@ sealed interface ContactEvent {
 
     data class EnteredPhoneNumber(val phoneNumber: String) : ContactEvent
     // ACTIONS
+    data object ResetBookingState : ContactEvent
     data object CreateBooking : ContactEvent
     data object DismissPaymentDialog : ContactEvent
     data class ConfirmBookingPayment(val phoneNumber: String) : ContactEvent

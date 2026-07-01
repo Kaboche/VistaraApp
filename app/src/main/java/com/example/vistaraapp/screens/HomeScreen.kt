@@ -77,11 +77,17 @@ fun HomeScreen(
     val sosMessage = sosViewModel.sosMessage
     val unreadCount by viewModel.unreadCount.collectAsState()
 
+    val sessionUiState by sessionViewModel.uiState.collectAsState()
+    val checkInState by sessionViewModel.checkInState.collectAsState()
+    val isCheckedIn = sessionUiState is com.example.vistaraapp.viewmodels.SessionUiState.Success || 
+            checkInState is com.example.vistaraapp.viewmodels.SessionUiState.Success
+
     // Background pre-fetch engine: keeps notification items hot and responsive
     LaunchedEffect(key1 = authToken) {
         if (authToken.isNotEmpty() && authToken != "OFFLINE_SESSION") {
             viewModel.fetchAllNotifications(authToken)
             viewModel.fetchUnreadNotificationsCount(authToken)
+            sessionViewModel.checkCurrentSession(authToken)
         }
     }
 
@@ -102,6 +108,7 @@ fun HomeScreen(
         navController = navController,
         weatherState = weatherState,
         unreadCount = unreadCount,
+        isCheckedIn = isCheckedIn,
         onRetryWeather = { weatherViewModel.fetchWeather() },
         onSendEmergencyReport = { emergencyType, details ->
             val mappedType = when (emergencyType.trim()) {
@@ -131,6 +138,7 @@ fun HomeScreenContent(
     navController: NavController,
     weatherState: WeatherState,
     unreadCount: Int,
+    isCheckedIn: Boolean,
     onRetryWeather: () -> Unit,
     onSendEmergencyReport: (type: String, details: String) -> Unit
 ) {
@@ -196,18 +204,20 @@ fun HomeScreenContent(
             }
         },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = { showEmergencyOverlay = true },
-                containerColor = emergencyRed,
-                contentColor = Color.White,
-                elevation = FloatingActionButtonDefaults.elevation(6.dp),
-                shape = RoundedCornerShape(20.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Warning,
-                    contentDescription = "Emergency",
-                    tint = Color.White
-                )
+            if (isCheckedIn) {
+                FloatingActionButton(
+                    onClick = { showEmergencyOverlay = true },
+                    containerColor = emergencyRed,
+                    contentColor = Color.White,
+                    elevation = FloatingActionButtonDefaults.elevation(6.dp),
+                    shape = RoundedCornerShape(20.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Warning,
+                        contentDescription = "Emergency",
+                        tint = Color.White
+                    )
+                }
             }
         },
         containerColor = lightGray
@@ -628,6 +638,7 @@ fun HomeScreenPreview() {
             navController = dummyNavController,
             weatherState = WeatherState.Loading,
             unreadCount = 0,
+            isCheckedIn = true,
             onRetryWeather = {},
             onSendEmergencyReport = { _, _ -> }
         )

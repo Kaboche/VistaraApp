@@ -21,7 +21,7 @@ import com.example.vistaraapp.database.ContactEvent
 import com.example.vistaraapp.database.ContactState
 import com.example.vistaraapp.entities_dataclass.allParks
 import com.example.vistaraapp.screens.components.BookingFormContent
-import com.example.vistaraapp.screens.components.BookingSuccessContent
+import com.example.vistaraapp.screens.components.BookingResultDialog
 import com.example.vistaraapp.screens.components.DateRangePickerDialog
 import com.example.vistaraapp.screens.components.PaymentConfirmationDialog
 import java.time.LocalDate
@@ -94,6 +94,10 @@ fun BookingScreen(
 
     val currentAmount = state.amount
 
+    LaunchedEffect(parkId) {
+        onEvent(ContactEvent.ResetBookingState)
+    }
+
     LaunchedEffect(state.showPaymentDialog) {
         if (state.showPaymentDialog) {
             stkPhoneNumber = state.phoneNumber
@@ -141,6 +145,24 @@ fun BookingScreen(
         )
     }
 
+    // Payment/Booking Result Dialog
+    if (state.isBookingSuccessful || state.isBookingFailed) {
+        BookingResultDialog(
+            brandGreen = brandGreen,
+            state = state,
+            parkName = park.name,
+            onGoToHome = {
+                onEvent(ContactEvent.ResetBookingState)
+                navController.navigate("home") {
+                    popUpTo("home") { inclusive = true }
+                }
+            },
+            onTryAgain = {
+                onEvent(ContactEvent.ResetBookingState)
+            }
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -163,34 +185,22 @@ fun BookingScreen(
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            if (state.isBookingSuccessful) {
-                BookingSuccessContent(
-                    brandGreen = brandGreen,
-                    pureWhite = pureWhite,
-                    darkGray = darkGray,
-                    park = park,
-                    state = state,
-                    currentAmount = currentAmount,
-                    onCheckInNow = { navController.navigate("check_in") }
-                )
-            } else {
-                BookingFormContent(
-                    brandGreen = brandGreen,
-                    pureWhite = pureWhite,
-                    park = park,
-                    state = state,
-                    currentAmount = currentAmount,
-                    validationError = validationError,
-                    onEvent = onEvent,
-                    onDateFieldClick = {
-                        val checkIn = try { LocalDate.parse(state.checkInDate) } catch (_: Exception) { null }
-                        val checkOut = try { LocalDate.parse(state.checkOutDate) } catch (_: Exception) { null }
-                        localSelection = Pair(checkIn, checkOut)
-                        showDateRangePicker = true
-                    },
-                    onValidationErrorChange = { validationError = it }
-                )
-            }
+            BookingFormContent(
+                brandGreen = brandGreen,
+                pureWhite = pureWhite,
+                park = park,
+                state = state,
+                currentAmount = currentAmount,
+                validationError = validationError,
+                onEvent = onEvent,
+                onDateFieldClick = {
+                    val checkIn = try { LocalDate.parse(state.checkInDate) } catch (_: Exception) { null }
+                    val checkOut = try { LocalDate.parse(state.checkOutDate) } catch (_: Exception) { null }
+                    localSelection = Pair(checkIn, checkOut)
+                    showDateRangePicker = true
+                },
+                onValidationErrorChange = { validationError = it }
+            )
         }
     }
 }

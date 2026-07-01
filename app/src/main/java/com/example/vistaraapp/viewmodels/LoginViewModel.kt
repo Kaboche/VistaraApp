@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.vistaraapp.repositories.AuthRepository
 import com.example.vistaraapp.repositories.LoginResult
 import com.example.vistaraapp.data.SessionManager
+import com.example.vistaraapp.utils.TokenManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -58,7 +59,11 @@ class LoginViewModel(
                     // Fallback: If network is down, repository sets result.response.success to true
                     // but getActualToken() might be null. We use a fallback if it's missing.
                     val token = result.response.getActualToken() ?: "OFFLINE_SESSION"
-                    val userRole = result.response.getActualRole()
+                    var userRole = result.response.getActualRole()
+
+                    if (userRole.isNullOrEmpty() && token != "OFFLINE_SESSION") {
+                        userRole = TokenManager.decodeJwtRole(token)
+                    }
 
                     sessionManager.saveToken(token)
                     if (userRole != null) {

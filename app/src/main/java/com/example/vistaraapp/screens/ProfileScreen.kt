@@ -34,7 +34,8 @@ fun ProfileScreen(
     navController: NavController,
     state: ContactState,
     onEvent: (ContactEvent) -> Unit,
-    authToken: String
+    authToken: String,
+    onLogout: () -> Unit
 ) {
     val brandGreen = Color(0xFF029602)
     val pureWhite = MaterialTheme.colorScheme.surface
@@ -213,6 +214,7 @@ fun ProfileScreen(
                             sessionManager = sessionManager,
                             onLogoutComplete = {
                                 Toast.makeText(context, "Logged out", Toast.LENGTH_SHORT).show()
+                                onLogout()
                                 navController.navigate("login") {
                                     popUpTo(0) { inclusive = true }
                                 }

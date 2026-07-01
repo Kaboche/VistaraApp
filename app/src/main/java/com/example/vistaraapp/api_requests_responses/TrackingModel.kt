@@ -4,8 +4,9 @@ package com.example.vistaraapp.api_requests_responses
 data class TrackingUpdateRequest(
     val latitude: Double,
     val longitude: Double,
-    val bookingId: String,
-    val status: String
+    val accuracy: Double,
+    val batteryLevel: Int,
+    val sessionId: Long
 )
 
 //  response class

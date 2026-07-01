@@ -8,11 +8,11 @@ import android.util.Log
 
 class TrackingViewModel(private val apiService: ApiService) : ViewModel() {
 
-    fun updateLocation(authToken: String, bookingId: String, lat: Double, lon: Double) {
+    fun updateLocation(authToken: String, sessionId: Long, lat: Double, lon: Double, accuracy: Double = 10.0, batteryLevel: Int = -1) {
         // viewModelScope is now available because we are inside a ViewModel
         viewModelScope.launch {
             try {
-                val request = TrackingUpdateRequest(lat, lon, bookingId, "ON_TRIP")
+                val request = TrackingUpdateRequest(lat, lon, accuracy, batteryLevel, sessionId)
                 val response = apiService.updateTracking("Bearer $authToken", request)
 
                 if (response.isSuccessful) {

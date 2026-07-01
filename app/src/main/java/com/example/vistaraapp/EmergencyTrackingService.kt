@@ -26,23 +26,24 @@ class EmergencyTrackingService : LifecycleService() {
         }
 
         val token = intent?.getStringExtra("AUTH_TOKEN") ?: ""
-        val bookingId = intent?.getStringExtra("BOOKING_ID") ?: ""
+        val sessionId = intent?.getLongExtra("SESSION_ID", 0L) ?: 0L
 
         startForeground(101, createNotification())
-        startContinuousTracking(token, bookingId)
+        startContinuousTracking(token, sessionId)
 
         return START_STICKY
     }
 
-    private fun startContinuousTracking(token: String, bId: String) {
+    private fun startContinuousTracking(token: String, sessionId: Long) {
         lifecycleScope.launch {
             while (isActive) {
                 try {
                     val request = TrackingUpdateRequest(
                         latitude = -1.2921,
                         longitude = 36.8219,
-                        bookingId = bId,
-                        status = "SOS_ACTIVE"
+                        accuracy = 10.0,
+                        batteryLevel = getBatteryLevel(),
+                        sessionId = sessionId
                     )
 
                     val response = RetrofitClient.bookingInstance.updateTracking("Bearer $token", request)
@@ -53,9 +54,14 @@ class EmergencyTrackingService : LifecycleService() {
                 } catch (e: Exception) {
                     Log.e("TrackingService", "Update failed: ${e.message}")
                 }
-                delay(10000)
+                delay(600000)
             }
         }
+    }
+
+    private fun getBatteryLevel(): Int {
+        val batteryManager = getSystemService(android.content.Context.BATTERY_SERVICE) as? android.os.BatteryManager
+        return batteryManager?.getIntProperty(android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY) ?: -1
     }
 
     private fun createNotification(): Notification {

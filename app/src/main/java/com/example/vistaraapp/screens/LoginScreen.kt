@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.vistaraapp.viewmodels.LoginEvent
 import com.example.vistaraapp.viewmodels.LoginViewModel
+import com.example.vistaraapp.utils.TokenManager
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,10 +42,10 @@ fun LoginScreen(
 
     LaunchedEffect(state.isLoginSuccess) {
         if (state.isLoginSuccess) {
-            val destination = when (state.role) {
-                "PARK_RANGER" -> "ranger_dashboard"
-                "VISITOR", "GUEST" -> "home_dashboard"
-                else -> "home_dashboard"
+            val destination = if (TokenManager.isRangerRole(state.role)) {
+                "ranger_dashboard"
+            } else {
+                "home"
             }
 
             onNavigateToDashboard(destination)

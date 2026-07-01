@@ -214,6 +214,19 @@ class ContactViewModel(
                 _state.update { it.copy(showPaymentDialog = false) }
             }
 
+            ContactEvent.ResetBookingState -> {
+                _state.update {
+                    it.copy(
+                        isBookingSuccessful = false,
+                        isBookingFailed = false,
+                        bookingErrorMessage = null,
+                        bookingReference = null,
+                        showPaymentDialog = false,
+                        isBookingLoading = false
+                    )
+                }
+            }
+
             is ContactEvent.CreateBooking -> {
                 viewModelScope.launch {
                     _state.update { it.copy(isBookingLoading = true, bookingErrorMessage = null) }
@@ -234,7 +247,7 @@ class ContactViewModel(
                         val response = RetrofitClient.bookingInstance.proceedToPayment(bearerToken, request)
 
                         if (response.isSuccessful) {
-                            val bookingRef = response.body()?.bookingReference ?: run {
+                            val bookingRef = response.body()?.data?.bookingReference ?: run {
                                 val timestamp = SimpleDateFormat(
                                     "yyyyMMdd-HHmm",
                                     Locale.getDefault()
@@ -304,6 +317,8 @@ class ContactViewModel(
                             _state.update {
                                 it.copy(
                                     isBookingLoading = false,
+                                    isBookingFailed = true,
+                                    showPaymentDialog = false,
                                     bookingErrorMessage = "Payment initialization failed: $mpesaErrorReason"
                                 )
                             }
@@ -312,6 +327,8 @@ class ContactViewModel(
                         _state.update {
                             it.copy(
                                 isBookingLoading = false,
+                                isBookingFailed = true,
+                                showPaymentDialog = false,
                                 bookingErrorMessage = e.localizedMessage ?: "An unexpected connection error occurred"
                             )
                         }

@@ -71,7 +71,7 @@ class SosViewModel : ViewModel() {
                     // START THE FOREGROUND SERVICE
                     val intent = Intent(context, EmergencyTrackingService::class.java).apply {
                         putExtra("AUTH_TOKEN", bearerToken.removePrefix("Bearer ").trim())
-                        putExtra("BOOKING_ID", sessionId.toString())
+                        putExtra("SESSION_ID", sessionId.toLong())
                     }
                     context.startForegroundService(intent)
                 } else {

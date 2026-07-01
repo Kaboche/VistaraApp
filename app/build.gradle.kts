@@ -71,6 +71,8 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+    implementation("com.google.maps.android:maps-compose:6.0.0")
+    implementation("com.google.android.gms:play-services-maps:19.0.0")
     implementation(libs.androidx.navigation.runtime.ktx)
     val lifecycle_version = "2.6.2"
     implementation("com.google.android.gms:play-services-mlkit-barcode-scanning:18.3.0")
@@ -85,11 +87,11 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
-    implementation("com.kizitonwose.calendar:compose:2.10.1")
-    implementation("androidx.camera:camera-camera2-pipe:1.6.1")
+    implementation("androidx.camera:camera-core:1.6.1")
+    implementation("androidx.camera:camera-camera2:1.6.1")
     implementation("androidx.camera:camera-lifecycle:1.6.1")
     implementation("androidx.camera:camera-view:1.6.1")
-    implementation("com.google.android.gms:play-services-mlkit-barcode-scanning:18.3.1")
+    implementation("com.google.mlkit:barcode-scanning:17.3.0")
 
     implementation("androidx.navigation:navigation-compose:2.9.8")
 
@@ -121,4 +123,7 @@ dependencies {
     kapt("androidx.room:room-compiler:$room_version") // compiler line
 
     implementation("androidx.datastore:datastore-preferences:1.1.1")
+
+    // Calendar library
+    implementation(libs.calendar.compose)
 }

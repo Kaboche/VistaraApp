@@ -1,5 +1,5 @@
 package com.example.vistaraapp.screens.navigation
-
+import com.example.vistaraapp.screens.RangerScannerContent
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -66,10 +66,18 @@ fun AppNavigation(
                 onLoginSuccess()
 
                 // Read user role and route to the correct dashboard
-                val savedRole = sessionManager.getRole() ?: ""
-                val destination = when (savedRole) {
-                    "PARK_RANGER" -> "ranger_dashboard"
-                    else -> "home"
+                var savedRole = sessionManager.getRole() ?: ""
+                if (savedRole.isEmpty() && savedToken.isNotEmpty() && savedToken != "OFFLINE_SESSION") {
+                    savedRole = TokenManager.decodeJwtRole(savedToken) ?: ""
+                    if (savedRole.isNotEmpty()) {
+                        sessionManager.saveRole(savedRole)
+                    }
+                }
+
+                val destination = if (TokenManager.isRangerRole(savedRole)) {
+                    "ranger_dashboard"
+                } else {
+                    "home"
                 }
 
                 // 4. Jump past the auth entry screens cleanly
@@ -174,32 +182,20 @@ fun AppNavigation(
             )
         }
 
-        // Also register "home_dashboard" as an alias so LoginScreen's role mapping works
-        composable("home_dashboard") {
-            val weatherViewModel: WeatherViewModel = viewModel()
-            val sosViewModel: SosViewModel = viewModel()
-            HomeScreen(
-                navController = navController,
-                weatherViewModel = weatherViewModel,
-                viewModel = bookingViewModel,
-                sessionViewModel = sessionViewModel,
-                sosViewModel = sosViewModel,
-                authToken = tokenState.value
-            )
-        }
-
         // RANGER DASHBOARD
         composable("ranger_dashboard") {
             RangerDashboard(
                 onLogoutSuccess = {
                     onTokenUpdated("")
-                    onLoginSuccess() // Triggers state refresh or hides bottom bars if appropriate
                     // Redirect to login screen and clear backstack
                     navController.navigate("login") {
                         popUpTo(navController.graph.startDestinationId) {
                             inclusive = true
                         }
                     }
+                },
+                onResetPasswordClick = {
+                    navController.navigate("reset_password")
                 }
             )
         }
@@ -224,7 +220,10 @@ fun AppNavigation(
                 navController = navController,
                 state = currentContactState.value,
                 onEvent = contactViewModel::onEvent,
-                authToken = tokenState.value
+                authToken = tokenState.value,
+                onLogout = {
+                    onTokenUpdated("")
+                }
             )
         }
 
@@ -360,13 +359,15 @@ fun AppNavigation(
                 viewModel = rangerViewModel,
                 onLogoutSuccess = {
                     onTokenUpdated("")
-                    onLoginSuccess() // Triggers state refresh or hides bottom bars if appropriate
                     // Redirect to login screen and clear backstack
                     navController.navigate("login") {
                         popUpTo(navController.graph.startDestinationId) {
                             inclusive = true
                         }
                     }
+                },
+                onResetPasswordClick = {
+                    navController.navigate("reset_password")
                 }
             )
         }

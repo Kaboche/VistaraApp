@@ -11,6 +11,7 @@ import com.example.vistaraapp.api_requests_responses.UnreadCountResponse
 import com.example.vistaraapp.api_requests_responses.NotificationReadResponse
 import com.example.vistaraapp.api_requests_responses.TrackingUpdateRequest
 import com.example.vistaraapp.api_requests_responses.TrackingUpdateResponse
+import com.example.vistaraapp.api_requests_responses.BookingData
 import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.Body
@@ -33,9 +34,9 @@ data class BookingRequest(
 )
 
 data class BookingCreationResponse(
-    val bookingReference: String,
     val success: Boolean?,
-    val message: String?
+    val message: String?,
+    val data: BookingData?
 )
 
 // Mpesa
