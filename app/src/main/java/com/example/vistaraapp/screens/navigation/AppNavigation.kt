@@ -227,6 +227,10 @@ fun AppNavigation(
             )
         }
 
+        //Map screen
+        composable("map_screen") {
+            MapScreen()
+        }
         // EDIT DETAILS FORM
         composable("edit_profile") {
             EditProfileScreen(
@@ -297,13 +301,6 @@ fun AppNavigation(
         }
 
         // EXTRA APP UTILITY SCREENS
-        composable("check_in") {
-            CheckInScreen(
-                navController = navController,
-                viewModel = sessionViewModel,
-                authToken = tokenState.value
-            )
-        }
         composable("map_tracking") { MapTrackingScreen(navController) }
 
         // ALL NOTIFICATIONS FEED
@@ -369,6 +366,21 @@ fun AppNavigation(
                 onResetPasswordClick = {
                     navController.navigate("reset_password")
                 }
+            )
+
+
+        }
+
+        // BOOKING DETAIL SCREEN (Shows Booking details & Entry QR Code)
+        composable("booking_detail/{bookingId}/{bookingReference}") { backStackEntry ->
+            val bookingId = backStackEntry.arguments?.getString("bookingId")?.toIntOrNull() ?: 0
+            val bookingReference = backStackEntry.arguments?.getString("bookingReference") ?: ""
+            BookingDetailScreen(
+                navController = navController,
+                bookingId = bookingId,
+                bookingReference = bookingReference,
+                viewModel = bookingViewModel,
+                authToken = tokenState.value
             )
         }
     }

@@ -21,18 +21,22 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
 import com.google.android.gms.location.LocationServices
-import com.google.android.gms.maps.CameraUpdateFactory
-import com.google.android.gms.maps.model.CameraPosition
-import com.google.android.gms.maps.model.LatLng
-import com.google.maps.android.compose.*
+import androidx.compose.ui.viewinterop.AndroidView
+import org.osmdroid.config.Configuration
+import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import org.osmdroid.views.MapView
+import org.osmdroid.views.overlay.Marker
+import org.osmdroid.util.GeoPoint
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MapTrackingScreen(navController: NavController) {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
 
     // Brand colors
     val brandGreen = Color(0xFF029602)
@@ -49,7 +53,7 @@ fun MapTrackingScreen(navController: NavController) {
         )
     }
 
-    var currentLocation by remember { mutableStateOf<LatLng?>(null) }
+    var currentLocation by remember { mutableStateOf<GeoPoint?>(null) }
     var isLocationLoading by remember { mutableStateOf(false) }
     var showPermissionRationale by remember { mutableStateOf(false) }
 
@@ -59,13 +63,12 @@ fun MapTrackingScreen(navController: NavController) {
     ) { isGranted ->
         hasLocationPermission = isGranted
         if (isGranted) {
-            // Permission granted, get location
             Toast.makeText(context, "Location permission granted", Toast.LENGTH_SHORT).show()
             isLocationLoading = true
-            getCurrentLocation(context) { latLng ->
-                currentLocation = latLng
+            getCurrentLocation(context) { geoPoint ->
+                currentLocation = geoPoint
                 isLocationLoading = false
-                if (latLng == null) {
+                if (geoPoint == null) {
                     Toast.makeText(context, "Unable to get location. Please enable GPS.", Toast.LENGTH_LONG).show()
                 }
             }
@@ -79,20 +82,49 @@ fun MapTrackingScreen(navController: NavController) {
     LaunchedEffect(hasLocationPermission) {
         if (hasLocationPermission && currentLocation == null) {
             isLocationLoading = true
-            getCurrentLocation(context) { latLng ->
-                currentLocation = latLng
+            getCurrentLocation(context) { geoPoint ->
+                currentLocation = geoPoint
                 isLocationLoading = false
             }
         }
     }
 
-    val cameraPositionState = rememberCameraPositionState {
-        position = CameraPosition.fromLatLngZoom(currentLocation ?: LatLng(-1.286389, 36.817223), 15f)
+    // Initialize MapView and OSMDroid configuration once
+    val mapView = remember {
+        // Initialize Configuration before inflating MapView
+        Configuration.getInstance().userAgentValue = context.packageName
+        Configuration.getInstance().load(context, context.getSharedPreferences("osmdroid", Context.MODE_PRIVATE))
+
+        MapView(context).apply {
+            setTileSource(TileSourceFactory.MAPNIK)
+            setMultiTouchControls(true)
+            controller.setZoom(17.0)
+        }
     }
 
-    LaunchedEffect(currentLocation) {
-        currentLocation?.let {
-            cameraPositionState.animate(CameraUpdateFactory.newLatLngZoom(it, 15f))
+    // Add marker representing user location
+    val userMarker = remember(mapView) {
+        Marker(mapView).apply {
+            title = "You are here"
+            snippet = "Your current location"
+            mapView.overlays.add(this)
+        }
+    }
+
+    // Bind MapView lifecycle to the lifecycle of the composable
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner, mapView) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> mapView.onResume()
+                Lifecycle.Event.ON_PAUSE -> mapView.onPause()
+                else -> {}
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            mapView.onDetach()
         }
     }
 
@@ -125,21 +157,19 @@ fun MapTrackingScreen(navController: NavController) {
             when {
                 // Case 1: Permission granted and location available - Show Map
                 hasLocationPermission && currentLocation != null -> {
-                    GoogleMap(
+                    AndroidView(
                         modifier = Modifier.fillMaxSize(),
-                        cameraPositionState = cameraPositionState,
-                        properties = MapProperties(
-                            isMyLocationEnabled = true
-                        )
-                    ) {
-                        currentLocation?.let {
-                            Marker(
-                                state = MarkerState(position = it),
-                                title = "You are here",
-                                snippet = "Your current location"
-                            )
+                        factory = { mapView },
+                        update = { view ->
+                            currentLocation?.let { loc ->
+                                if (userMarker.position != loc) {
+                                    userMarker.position = loc
+                                    view.controller.animateTo(loc)
+                                    view.invalidate()
+                                }
+                            }
                         }
-                    }
+                    )
                 }
                 // Case 2: Permission granted but loading location
                 hasLocationPermission && isLocationLoading -> {
@@ -200,7 +230,7 @@ fun MapTrackingScreen(navController: NavController) {
                                         permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
                                     },
                                     modifier = Modifier.fillMaxWidth().height(48.dp),
-                                    shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+                                    shape = RoundedCornerShape(12.dp),
                                     colors = ButtonDefaults.buttonColors(containerColor = brandGreen)
                                 ) {
                                     Text(
@@ -245,16 +275,15 @@ fun MapTrackingScreen(navController: NavController) {
 
 private fun getCurrentLocation(
     context: Context,
-    onResult: (LatLng?) -> Unit
+    onResult: (GeoPoint?) -> Unit
 ) {
     try {
         val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
 
         fusedLocationClient.lastLocation.addOnSuccessListener { location ->
             if (location != null) {
-                onResult(LatLng(location.latitude, location.longitude))
+                onResult(GeoPoint(location.latitude, location.longitude))
             } else {
-                // Try to request a single location update
                 onResult(null)
             }
         }.addOnFailureListener {

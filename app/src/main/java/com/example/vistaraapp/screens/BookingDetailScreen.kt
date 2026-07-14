@@ -1,5 +1,8 @@
 package com.example.vistaraapp.screens
 
+import android.graphics.BitmapFactory
+import android.util.Base64
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -11,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -22,14 +26,34 @@ import com.example.vistaraapp.viewmodels.BookingViewModel
 @Composable
 fun BookingDetailScreen(
     navController: NavController,
-    bookingReference: String, // Matching your API's tracking field
-    viewModel: BookingViewModel
+    bookingId: Int,
+    bookingReference: String,
+    viewModel: BookingViewModel,
+    authToken: String
 ) {
     val brandGreen = Color(0xFF029602)
     val pureWhite = MaterialTheme.colorScheme.surface
 
-    // Extract the live state directly from the shared ViewModel
     val uiState by viewModel.uiState
+    // qrCodeState holds the raw base64 string from the server
+    val qrBase64 by viewModel.qrCodeState.collectAsState()
+
+    // Decode base64 → Bitmap whenever the value changes
+    val qrBitmap = remember(qrBase64) {
+        qrBase64?.let { b64 ->
+            try {
+                val bytes = Base64.decode(b64, Base64.DEFAULT)
+                BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
+            } catch (_: Exception) { null }
+        }
+    }
+
+    // Fetch QR code using the NUMERIC booking id
+    LaunchedEffect(bookingId, authToken) {
+        if (authToken.isNotEmpty()) {
+            viewModel.loadQrCode(authToken, bookingId.toString())
+        }
+    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -46,7 +70,7 @@ fun BookingDetailScreen(
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack, // Fixed deprecation warning
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
                             tint = brandGreen
                         )
@@ -56,7 +80,6 @@ fun BookingDetailScreen(
             )
         }
     ) { paddingValues ->
-        // Handle matching UI elements based on current global network state
         when (val state = uiState) {
             is BookingUiState.Loading -> {
                 Box(modifier = Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
@@ -65,38 +88,22 @@ fun BookingDetailScreen(
             }
             is BookingUiState.Error -> {
                 Box(modifier = Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
-                    Text(text = state.message, color = MaterialTheme.colorScheme.error, fontSize = 14.sp)
+                    Text(text = state.message, color = MaterialTheme.colorScheme.error)
                 }
             }
             is BookingUiState.Success -> {
-                // Find the target booking item from our cached network array list
                 val booking = state.bookings.find { it.bookingReference == bookingReference }
 
                 if (booking == null) {
-                    Box(
-                        modifier = Modifier.fillMaxSize().padding(paddingValues),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("❌", fontSize = 48.sp)
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text("Booking Not Found", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Button(
-                                onClick = { navController.popBackStack() },
-                                colors = ButtonDefaults.buttonColors(containerColor = brandGreen)
-                            ) {
-                                Text("Go Back", color = Color.White)
-                            }
-                        }
+                    Box(modifier = Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
+                        Text("Booking Not Found")
                     }
                 } else {
-                    // Match live API status colors safely using explicit Strings
                     val status = booking.bookingStatus ?: "PENDING"
                     val statusColor = when (status.uppercase()) {
                         "CONFIRMED", "COMPLETED" -> Color(0xFF4CAF50)
                         "PENDING" -> Color(0xFFFF9800)
-                        else -> Color(0xFFF44336) // CANCELLED
+                        else -> Color(0xFFF44336)
                     }
 
                     Column(
@@ -118,17 +125,7 @@ fun BookingDetailScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(
-                                    text = "Status: $status",
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = statusColor
-                                )
-                                if (status == "CONFIRMED" || status == "PENDING") {
-                                    TextButton(onClick = { /* Handle cancellation network request */ }) {
-                                        Text("Cancel", color = Color(0xFFF44336))
-                                    }
-                                }
+                                Text("Status: $status", fontWeight = FontWeight.Bold, color = statusColor)
                             }
                         }
 
@@ -139,37 +136,64 @@ fun BookingDetailScreen(
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                             elevation = CardDefaults.cardElevation(2.dp)
                         ) {
-                            Column(
-                                modifier = Modifier.padding(16.dp),
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                Text(
-                                    text = "Booking Information",
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = brandGreen
-                                )
-                                DetailRow(label = "Booking Ref", value = booking.bookingReference)
-                                DetailRow(label = "Check In Date", value = booking.checkInDate)
-                                DetailRow(label = "Check Out Date", value = booking.checkOutDate)
-                                DetailRow(label = "Vehicle Registration", value = booking.vehicleRegistration)
-                                DetailRow(label = "Group Size", value = "${booking.groupSize ?: 0} person(s)")
-                                DetailRow(
-                                    label = "Total Amount",
-                                    value = "KES ${booking.amount ?: 0.0}",
-                                    valueColor = brandGreen
-                                )
+                            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Text("Booking Information", fontWeight = FontWeight.Bold, color = brandGreen)
+                                DetailRow("Reference", booking.bookingReference)
+                                DetailRow("Check In", booking.checkInDate)
+                                DetailRow("Check Out", booking.checkOutDate)
+                                DetailRow("Group Size", "${booking.groupSize ?: 0} person(s)")
+                                DetailRow("Vehicle Reg", booking.vehicleRegistration)
+                                DetailRow("Amount", "KES ${booking.amount ?: 0.0}")
+                                DetailRow("Payment", booking.paymentStatus)
                             }
                         }
 
-                        // Back Button
+                        // QR Code Card — shown when CONFIRMED and QR loaded successfully
+                        if (status.uppercase() == "CONFIRMED") {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(16.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                                elevation = CardDefaults.cardElevation(2.dp)
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    Text("Entry QR Code", fontWeight = FontWeight.Bold, color = brandGreen)
+                                    if (qrBitmap != null) {
+                                        Image(
+                                            bitmap = qrBitmap,
+                                            contentDescription = "Entry QR Code",
+                                            modifier = Modifier.size(220.dp)
+                                        )
+                                        Text(
+                                            text = "Present this QR at the park gate",
+                                            fontSize = 12.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    } else {
+                                        CircularProgressIndicator(
+                                            color = brandGreen,
+                                            modifier = Modifier.size(48.dp)
+                                        )
+                                        Text(
+                                            text = "Loading your entry QR code…",
+                                            fontSize = 13.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
                         Button(
                             onClick = { navController.popBackStack() },
                             modifier = Modifier.fillMaxWidth().height(48.dp),
-                            shape = RoundedCornerShape(12.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = brandGreen)
                         ) {
-                            Text("Back to Bookings", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                            Text("Back to Bookings", color = Color.White, fontWeight = FontWeight.Bold)
                         }
                     }
                 }

@@ -7,11 +7,22 @@ import com.example.vistaraapp.api_requests_responses.SosResponse
 import com.example.vistaraapp.api_requests_responses.BookingsResponse
 import com.example.vistaraapp.api_requests_responses.NotificationListResponse
 import com.example.vistaraapp.ProfileNetworkRequest
+import com.example.vistaraapp.RangerAlert
+import com.example.vistaraapp.RangerAlertResponse
+import com.example.vistaraapp.AlertStatisticsResponse
+import com.example.vistaraapp.ClaimAlertResponse
+import com.example.vistaraapp.QrCheckInRequest
+import com.example.vistaraapp.QrCheckInResponse
+import com.example.vistaraapp.ResolveAlertRequest
+import com.example.vistaraapp.ResolveAlertResponse
 import com.example.vistaraapp.api_requests_responses.UnreadCountResponse
 import com.example.vistaraapp.api_requests_responses.NotificationReadResponse
 import com.example.vistaraapp.api_requests_responses.TrackingUpdateRequest
 import com.example.vistaraapp.api_requests_responses.TrackingUpdateResponse
 import com.example.vistaraapp.api_requests_responses.BookingData
+import com.example.vistaraapp.QrCodeResponse
+import com.example.vistaraapp.api_requests_responses.ScanQrCodeResponse
+import com.example.vistaraapp.api_requests_responses.ScanQrCodeRequest
 import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.Body
@@ -92,42 +103,110 @@ interface ApiService {
     ): Response<NotificationListResponse>
 
     // unread notifications
-    @Headers( "ngrok-skip-browser-warning: true")
+    @Headers("ngrok-skip-browser-warning: true")
     @GET("notifications/unread")
     suspend fun getUnreadNotifications(
-        @Header ("Authorization") bearerToken: String
+        @Header("Authorization") bearerToken: String
     ): Response<NotificationListResponse>
-    @Headers( "ngrok-skip-browser-warning: true")
+
+    @Headers("ngrok-skip-browser-warning: true")
     @GET("notifications/unread-count")
     suspend fun countNotifications(
-        @Header ("Authorization") bearerToken: String
+        @Header("Authorization") bearerToken: String
     ): Response<UnreadCountResponse>
 
     //mark a  notification as read
-@Headers( "ngrok-skip-browser-warning: true")
-@PUT("notifications/{id}/read")
-suspend fun markNotificationAsRead(
-    @Header ("Authorization") bearerToken: String,
-    @Path("id") id: String
-): Response<ResponseBody>
+    @Headers("ngrok-skip-browser-warning: true")
+    @PUT("notifications/{id}/read")
+    suspend fun markNotificationAsRead(
+        @Header("Authorization") bearerToken: String,
+        @Path("id") id: String
+    ): Response<ResponseBody>
 
-// mark all notifications as read
-@Headers("ngrok-skip-browser-warning: true")
-@PUT("notifications/{id}/read-all")
-suspend fun markAllNotificationAsRead(
-    @Header ("Authorization") bearerToken: String,
-    @Path("id") id: String
-): Response<NotificationReadResponse>
+    // mark all notifications as read
+    @Headers("ngrok-skip-browser-warning: true")
+    @PUT("notifications/{id}/read-all")
+    suspend fun markAllNotificationAsRead(
+        @Header("Authorization") bearerToken: String,
+        @Path("id") id: String
+    ): Response<NotificationReadResponse>
 
-   //tracking
+    //tracking
     @Headers("ngrok-skip-browser-warning: true")
     @POST("tracking/update")
     suspend fun updateTracking(
         @Header("Authorization") bearerToken: String,
         @Body request: TrackingUpdateRequest
     ): Response<TrackingUpdateResponse>
-}
 
+    //Ranger Assigned
+    @GET("ranger/alerts/assigned")
+    suspend fun getAssignedAlerts(
+        @Header("Authorization") token: String
+    ): Response<RangerAlertResponse>
+
+    //Status of
+    @GET("ranger/alerts/assigned/status/{status}")
+    suspend fun getAlertsByStatus(
+        @Header("Authorization") token: String,
+        @Path("status") status: String
+    ): Response<RangerAlertResponse>
+
+    //RangerStats
+    @GET("ranger/alerts/stats")
+    suspend fun noOfSOS(
+        @Header("Authorization") token: String,
+    ): Response<AlertStatisticsResponse>
+
+    //Ranger claim
+    @POST("ranger/alerts/{alertId}/claim")
+    suspend fun assignToMe(
+        @Header("Authorization") token: String,
+        @Path("alertId") alertId: Long
+    ): ClaimAlertResponse
+
+    //responding to resolved
+    @PUT("ranger/alerts/{alertId}/resolve")
+    suspend fun resolveAlert(
+        @Header("Authorization") token: String,
+        @Path("alertId") alertId: Long,
+        @Body request: ResolveAlertRequest
+    ): ResolveAlertResponse
+
+    // All pending (unassigned) emergency alerts
+    @GET("emergency/pending")
+    suspend fun getPendingEmergencies(
+        @Header("Authorization") token: String
+    ): Response<RangerAlertResponse>
+
+    //generate qr code
+    @GET("bookings/{bookingId}/qr")
+            suspend fun getQrCode(
+        @Path("bookingId") bookingId: String,
+        @Header("Authorization") token: String
+
+            ):Response<QrCodeResponse>
+
+    //Ranger scan qr code
+    @POST("bookings/scan-qr")
+    suspend fun scanQrCode(
+        @Header("Authorization") token: String,
+        @Body request: ScanQrCodeRequest
+    ): Response<ScanQrCodeResponse>
+    // qr scan checkin
+    @POST("bookings/qr-checkin")
+    suspend fun checkInWithQr(
+        @Header("Authorization") token: String,
+        @Body request: QrCheckInRequest
+    ): Response<QrCheckInResponse>
+
+    //general ranger alerts
+    @Headers("ngrok-skip-browser-warning: true")
+    @GET("ranger/alerts/all")
+    suspend fun getAllAlerts(
+        @Header("Authorization") token: String
+    ): Response<com.example.vistaraapp.api_requests_responses.AlertsGeneralDto>
+}
 // 3. PROFILE ENDPOINTS SERVICE
 interface ProfileApiService {
 

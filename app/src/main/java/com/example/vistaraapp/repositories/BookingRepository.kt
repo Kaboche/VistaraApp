@@ -1,5 +1,6 @@
 package com.example.vistaraapp.repositories
 
+import com.example.vistaraapp.QrCodeResponse
 import com.example.vistaraapp.api.ApiService
 import com.example.vistaraapp.api.BookingCreationResponse
 import com.example.vistaraapp.api_requests_responses.BookingsResponse
@@ -88,5 +89,16 @@ suspend fun countUnreadNotifications(token: String): Response<UnreadCountRespons
             e.printStackTrace()
             null
         }
+    }
+
+    // qr code generation
+    suspend fun getQrCode(token: String,bookingId: String):Response<QrCodeResponse>{
+        return apiService.getQrCode(bookingId,"Bearer $token")
+    }
+
+    // qr check-in
+    suspend fun checkInWithQr(token: String, qrData: String): Response<com.example.vistaraapp.QrCheckInResponse> {
+        val request = com.example.vistaraapp.QrCheckInRequest(qrData = qrData)
+        return apiService.checkInWithQr("Bearer $token", request)
     }
 }

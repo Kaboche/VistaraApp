@@ -2,6 +2,7 @@ package com.example.vistaraapp.screens
 
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -110,9 +111,13 @@ fun BookingsScreen(
                                     },
                                     onPay = {
                                         booking.bookingReference?.let { ref ->
-                                            // Ensure this function name matches your ViewModel payment trigger function
                                             viewModel.initiateMpesaPayment(authToken, ref)
                                         }
+                                    },
+                                    onClick = {
+                                        val id = booking.id ?: return@BookingCard
+                                        val ref = booking.bookingReference ?: return@BookingCard
+                                        navController.navigate("booking_detail/$id/$ref")
                                     },
                                     brandGreen = brandGreen
                                 )
@@ -127,6 +132,11 @@ fun BookingsScreen(
                                     parkName = parkName,
                                     onCancel = null,
                                     onPay = null,
+                                    onClick = {
+                                        val id = booking.id ?: return@BookingCard
+                                        val ref = booking.bookingReference ?: return@BookingCard
+                                        navController.navigate("booking_detail/$id/$ref")
+                                    },
                                     brandGreen = brandGreen
                                 )
                             }
@@ -155,6 +165,7 @@ fun BookingCard(
     parkName: String,
     onCancel: (() -> Unit)?,
     onPay: (() -> Unit)?,
+    onClick: (() -> Unit)? = null,
     brandGreen: Color
 ) {
     val status = booking.bookingStatus ?: "PENDING"
@@ -167,7 +178,15 @@ fun BookingCard(
     val mpesaAmber = Color(0xFFFFB300)
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(
+                if (onClick != null) {
+                    Modifier.clickable { onClick() }
+                } else {
+                    Modifier
+                }
+            ),
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(2.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)

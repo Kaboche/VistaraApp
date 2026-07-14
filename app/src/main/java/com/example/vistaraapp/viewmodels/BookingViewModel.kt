@@ -5,6 +5,7 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.vistaraapp.EmergencyTrackingService
 import com.example.vistaraapp.api_requests_responses.BookingData
 import com.example.vistaraapp.api_requests_responses.NotificationListResponse
 import com.example.vistaraapp.api_requests_responses.toUiModel
@@ -15,6 +16,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import android.content.Context
+import android.content.Intent
+import android.os.Build
+import android.util.Log.e
+import com.example.vistaraapp.api.BookingRequest
+
 
 sealed class BookingUiState {
     object Loading : BookingUiState()
@@ -64,6 +71,12 @@ class BookingViewModel(private val repository: BookingRepository) : ViewModel() 
         _customPaymentPhone.value = newNumber
     }
 
+    //qr code
+    private val _qrCodeState = MutableStateFlow<String?>(null)
+    val qrCodeState: StateFlow<String?> = _qrCodeState
+
+    private val _qrError = MutableStateFlow<String?>(null)
+    val qrError: StateFlow<String?> = _qrError
 
     // OPERATIONS
 
@@ -189,6 +202,21 @@ class BookingViewModel(private val repository: BookingRepository) : ViewModel() 
                 Log.e("BookingViewModel", "Network failure fetching unread alerts", e)
             } finally {
                 _isLoadingUnread.value = false
+            }
+        }
+    }
+    // QR code — called after confirmed payment
+    fun loadQrCode(token: String, bookingId: String){
+        viewModelScope.launch {
+            try {
+                val response = repository.getQrCode(token, bookingId)
+                if (response.isSuccessful) {
+
+                    _qrCodeState.value = response.body()?.data?.qrCodeBase64
+                }
+            } catch (e: Exception) {
+                _qrError.value = "Failed to load QR code. Please check your internet connection and try again."
+                Log.e("QRCode", "Error fetching QR code", e)
             }
         }
     }
@@ -333,6 +361,27 @@ class BookingViewModel(private val repository: BookingRepository) : ViewModel() 
                 Log.e("Notification", "Failed to mark all notifications as read", e)
             }
         }
+    }
+
+    fun startEmergencyTracking(context: Context, token: String, sessionId: Long) {
+        val intent = Intent(context, EmergencyTrackingService::class.java).apply {
+            putExtra("AUTH_TOKEN", token)
+            putExtra("SESSION_ID", sessionId)
+        }
+
+        // Fix for API level 26 requirement
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            context.startForegroundService(intent)
+        } else {
+            context.startService(intent)
+        }
+    }
+
+    fun stopEmergencyTracking(context: Context) {
+        val intent = Intent(context, EmergencyTrackingService::class.java).apply {
+            action = "ACTION_STOP_SOS"
+        }
+        context.startService(intent)
     }
 
     // STATUS CLEANUP UTILITIES

@@ -18,6 +18,9 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.MySplashScreen">
+        <meta-data
+            android:name="org.osmdroid.config.userAgentValue"
+            android:value="com.example.vistaraapp" />
 
 
         <service
