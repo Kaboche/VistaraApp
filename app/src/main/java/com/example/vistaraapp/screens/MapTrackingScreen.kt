@@ -92,8 +92,22 @@ fun MapTrackingScreen(navController: NavController) {
     // Initialize MapView and OSMDroid configuration once
     val mapView = remember {
         // Initialize Configuration before inflating MapView
-        Configuration.getInstance().userAgentValue = context.packageName
-        Configuration.getInstance().load(context, context.getSharedPreferences("osmdroid", Context.MODE_PRIVATE))
+        val prefs = context.getSharedPreferences("osmdroid", Context.MODE_PRIVATE)
+        Configuration.getInstance().load(context, prefs)
+        val cleanUserAgent = "VistaraEmergencyApp/1.0 (Android; contact: support@vistara.co.ke)"
+        Configuration.getInstance().userAgentValue = cleanUserAgent
+        Configuration.getInstance().additionalHttpRequestProperties.put("User-Agent", cleanUserAgent)
+        Configuration.getInstance().save(context, prefs)
+
+        try {
+            org.osmdroid.tileprovider.modules.SqlTileWriter().purgeCache()
+        } catch (e: Exception) {}
+        try {
+            Configuration.getInstance().osmdroidBasePath?.deleteRecursively()
+            Configuration.getInstance().osmdroidTileCache?.deleteRecursively()
+            context.getDatabasePath("osmdroid").delete()
+            context.getDatabasePath("cache.db").delete()
+        } catch (e: Exception) {}
 
         MapView(context).apply {
             setTileSource(TileSourceFactory.MAPNIK)

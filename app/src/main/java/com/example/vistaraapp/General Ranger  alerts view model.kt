@@ -3,6 +3,7 @@ package com.example.vistaraapp
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.vistaraapp.api.RetrofitClient
 import com.example.vistaraapp.api_requests_responses.AlertItemDto
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -10,11 +11,14 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class GeneralRangerAlertsViewModel(
-    private val repository: RangerGeneralAlertsRepository
+    private val repository: RangerGeneralAlertsRepository = RangerGeneralAlertsRepository(RetrofitClient.bookingInstance)
 ) : ViewModel() {
 
     private val _alertsList = MutableStateFlow<List<AlertItemDto>>(emptyList())
     val alertsList: StateFlow<List<AlertItemDto>> = _alertsList.asStateFlow()
+
+    private val _alerts = MutableStateFlow<List<RangerAlert>>(emptyList())
+    val alerts: StateFlow<List<RangerAlert>> = _alerts.asStateFlow()
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
@@ -31,16 +35,24 @@ class GeneralRangerAlertsViewModel(
                 if (response.isSuccessful && response.body() != null) {
                     val body = response.body()!!
                     if (body.success) {
-                        _alertsList.value = body.data ?: emptyList()
+                        val dtoList = body.data ?: emptyList()
+                        _alertsList.value = dtoList
+                        _alerts.value = dtoList.map { it.toRangerAlert() }
                     } else {
+                        _alertsList.value = emptyList()
+                        _alerts.value = emptyList()
                         _errorMessage.value = body.message ?: "Failed to load alerts"
                         Log.e("ALERT_DEBUG", "API returned success=false: ${body.message}")
                     }
                 } else {
+                    _alertsList.value = emptyList()
+                    _alerts.value = emptyList()
                     _errorMessage.value = "Error ${response.code()}: ${response.message()}"
                     Log.e("ALERT_DEBUG", "Error: ${response.code()}")
                 }
             } catch (e: Exception) {
+                _alertsList.value = emptyList()
+                _alerts.value = emptyList()
                 _errorMessage.value = e.message ?: "An unexpected error occurred"
                 Log.e("ALERT_DEBUG", "Exception: ${e.message}", e)
             } finally {

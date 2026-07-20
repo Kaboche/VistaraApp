@@ -6,10 +6,11 @@ import com.example.vistaraapp.ClaimAlertResponse
 import com.example.vistaraapp.ResolveAlertResponse
 import com.example.vistaraapp.ResolveAlertRequest
 import com.example.vistaraapp.api.ApiService
+import com.example.vistaraapp.api.RetrofitClient
 import com.example.vistaraapp.api_requests_responses.AlertsGeneralDto
 import retrofit2.Response
 
-class AlertsRepository(private val apiService: ApiService) {
+class AlertsRepository(private val apiService: ApiService = RetrofitClient.bookingInstance) {
 
     suspend fun getAllAlerts(token: String): Response<AlertsGeneralDto> {
         val bearer = if (token.startsWith("Bearer ")) token else "Bearer $token"

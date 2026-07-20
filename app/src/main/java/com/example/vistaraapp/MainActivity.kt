@@ -1,5 +1,6 @@
 package com.example.vistaraapp
 
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -63,6 +64,25 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         TokenManager.init(applicationContext)
+        val prefs = getSharedPreferences("osmdroid", Context.MODE_PRIVATE)
+        org.osmdroid.config.Configuration.getInstance().load(applicationContext, prefs)
+        val cleanUserAgent = "VistaraEmergencyApp/1.0 (Android; contact: support@vistara.co.ke)"
+        org.osmdroid.config.Configuration.getInstance().userAgentValue = cleanUserAgent
+        org.osmdroid.config.Configuration.getInstance().additionalHttpRequestProperties.put("User-Agent", cleanUserAgent)
+        org.osmdroid.config.Configuration.getInstance().save(applicationContext, prefs)
+
+        try {
+            org.osmdroid.tileprovider.modules.SqlTileWriter().purgeCache()
+        } catch (e: Exception) {}
+        try {
+            org.osmdroid.config.Configuration.getInstance().osmdroidBasePath?.deleteRecursively()
+            org.osmdroid.config.Configuration.getInstance().osmdroidTileCache?.deleteRecursively()
+            getDatabasePath("osmdroid").delete()
+            getDatabasePath("cache.db").delete()
+            java.io.File(filesDir, "osmdroid").deleteRecursively()
+            java.io.File(cacheDir, "osmdroid").deleteRecursively()
+        } catch (e: Exception) {}
+
         installSplashScreen()
         enableEdgeToEdge()
         setContent {
